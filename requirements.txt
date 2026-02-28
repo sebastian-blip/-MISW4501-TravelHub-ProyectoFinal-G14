@@ -1,1 +1,6 @@
-fastapi
+fastapi==0.115.0
+uvicorn==0.30.0
+tortoise-orm==0.21.7
+asyncpg==0.29.0
+mediatr==0.8.0
+pydantic==2.7.0

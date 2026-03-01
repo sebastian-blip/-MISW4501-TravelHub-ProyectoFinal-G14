@@ -6,6 +6,9 @@ from tortoise import Tortoise
 from poc1.infrastructure.database import TORTOISE_ORM
 from poc1.routes.health_router import router as health_router
 from poc1.routes.hotel_router import router as hotel_router
+from poc1.routes.reservation_routers.queries import router as reservation_query_router
+from poc1.routes.reservation_routers.commands import router as reservation_command_router
+
 
 
 @asynccontextmanager
@@ -22,6 +25,8 @@ app = FastAPI(
 
 app.include_router(health_router)
 app.include_router(hotel_router)
+app.include_router(reservation_query_router)
+app.include_router(reservation_command_router)
 
 if __name__ == "__main__":
     import uvicorn

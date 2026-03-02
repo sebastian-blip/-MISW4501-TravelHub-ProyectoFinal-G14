@@ -1,0 +1,1 @@
+# Reservations consumer - Core style

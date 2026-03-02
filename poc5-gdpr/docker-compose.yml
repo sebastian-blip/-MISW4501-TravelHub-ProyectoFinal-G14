@@ -1,0 +1,98 @@
+# PoC-5 GDPR - Derecho al olvido (experiment)
+# Core: user_service, reader_service, reservations_consumer | Apoyo: analytics_consumer
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: poc5_gdpr_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: poc5_gdpr
+    ports:
+      - "5433:5432"
+    volumes:
+      - poc5_postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d poc5_gdpr"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: poc5_gdpr_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  core-user-service:
+    build:
+      context: .
+      dockerfile: core_user_service/Dockerfile
+    container_name: poc5_gdpr_core_user_service
+    restart: on-failure
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    ports:
+      - "8000:8000"
+
+  core-reader-service:
+    build:
+      context: .
+      dockerfile: core_reader_service/Dockerfile
+    container_name: poc5_gdpr_core_reader
+    restart: on-failure
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      AUDIT_DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+    depends_on:
+      db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  core-reservations-consumer:
+    build:
+      context: .
+      dockerfile: core_reservations_consumer/Dockerfile
+    container_name: poc5_gdpr_core_reservations
+    restart: on-failure
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      AUDIT_DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+    depends_on:
+      db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  apoyo-analytics-consumer:
+    build:
+      context: .
+      dockerfile: apoyo_analytics_consumer/Dockerfile
+    container_name: poc5_gdpr_apoyo_analytics
+    restart: on-failure
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      AUDIT_DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+      # Para reproducir Unhappy 2 (Analytics lento): DELAY_ANALYTICS_SEC=15; operación normal: 0
+      DELAY_ANALYTICS_SEC: "0"
+    depends_on:
+      db: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+volumes:
+  poc5_postgres_data:

@@ -1,0 +1,6 @@
+"""RabbitMQ exchange, queue and routing key names (shared across services)."""
+EXCHANGE_USUARIO_OLVIDADO = "usuario_olvidado"
+QUEUE_READER = "reader_usuario_olvidado"
+QUEUE_RESERVATIONS = "reservations_usuario_olvidado"
+QUEUE_ANALYTICS = "analytics_usuario_olvidado"
+ROUTING_KEY = "usuario.olvidado"

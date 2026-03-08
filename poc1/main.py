@@ -35,7 +35,7 @@ _ensure_kafka_vendor_six_moves()
 
 
 DEV = True
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "travelhub_kafka:9092")
 
 logging.basicConfig(
     level=logging.INFO,

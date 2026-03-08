@@ -10,4 +10,4 @@ scrape_configs:
   - job_name: "hotel-api"
     metrics_path: /metrics
     static_configs:
-      - targets: ["34.239.162.208:8000"]
+      - targets: ["localhost:8000"]

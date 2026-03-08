@@ -34,7 +34,7 @@ def _ensure_kafka_vendor_six_moves():
 _ensure_kafka_vendor_six_moves()
 
 
-DEV = True
+DEV = False
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "travelhub_kafka:9092")
 
 logging.basicConfig(

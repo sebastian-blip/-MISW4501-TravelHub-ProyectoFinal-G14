@@ -35,6 +35,7 @@ _ensure_kafka_vendor_six_moves()
 
 
 DEV = True
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,11 +48,11 @@ async def lifespan(app: FastAPI):
     if DEV:
         await seed_hotels()
     try:
-        kafka_pub = KafkaPublisher(bootstrap_servers="localhost:9092")
+        kafka_pub = KafkaPublisher(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS)
         EventPublisher.set(kafka_pub)
     except Exception:
         pass
-    consumer = AvailabilityReadModelConsumer(bootstrap_servers="localhost:9092")
+    consumer = AvailabilityReadModelConsumer(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS)
     try:
         await consumer.start()
     except Exception:

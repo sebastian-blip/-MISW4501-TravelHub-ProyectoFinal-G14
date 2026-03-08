@@ -7,7 +7,7 @@ from hotel_service.events.publisher import EventPublisherABC, DEFAULT_TOPIC
 
 
 class KafkaPublisher(EventPublisherABC):
-    def __init__(self, bootstrap_servers: str = "localhost:9092"):
+    def __init__(self, bootstrap_servers: str = "travelhub_kafka:9092"):
         self._bootstrap = bootstrap_servers
         self._producer: AIOKafkaProducer | None = None
 

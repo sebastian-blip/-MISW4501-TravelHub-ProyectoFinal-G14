@@ -14,7 +14,7 @@ from hotel_service.metrics import reservations_consumed_total, reservation_consi
 
 
 class AvailabilityReadModelConsumer:
-    def __init__(self, bootstrap_servers: str = "localhost:9092", topic: str = "reservation-created", group_id: str = "hotel-availability-readmodel"):
+    def __init__(self, bootstrap_servers: str = "travelhub_kafka:9092", topic: str = "reservation-created", group_id: str = "hotel-availability-readmodel"):
         self.bootstrap_servers = bootstrap_servers
         self.topic = topic
         self.group_id = group_id

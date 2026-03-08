@@ -1,58 +1,64 @@
 """
-Reservations consumer: subscribe to UsuarioOlvidado, anonymize user_id in reservations, record completado.
+Reservations consumer: read from Redis Stream UsuarioOlvidado, anonymize user_id in reservations, record completado.
+Broker: Redis (Redis Streams). DB: DuckDB via HTTP API.
 """
 import asyncio
 import uuid
 from datetime import datetime
-import pika
-import asyncpg
-from .config import DATABASE_URL, RABBITMQ_URL, CONSUMER_ID, ANONYMOUS_USER_ID
-from .repositories.reservation_repository import ReservationRepository
-from .repositories.audit_repository import AuditRepository
+import redis
+import httpx
+from .config import DB_API_URL, REDIS_URL, CONSUMER_ID, ANONYMOUS_USER_ID
 
-from shared.event_schema import (
-    EXCHANGE_USUARIO_OLVIDADO,
-    QUEUE_RESERVATIONS,
-    ROUTING_KEY,
-    UsuarioOlvidadoPayload,
-)
+from shared.event_schema import STREAM_USUARIO_OLVIDADO, QUEUE_RESERVATIONS, UsuarioOlvidadoPayload
 
 
 def run_consumer():
-    print("Connecting to RabbitMQ...", flush=True)
-    params = pika.URLParameters(RABBITMQ_URL)
-    connection = pika.BlockingConnection(params)
-    channel = connection.channel()
-    channel.exchange_declare(exchange=EXCHANGE_USUARIO_OLVIDADO, exchange_type="topic", durable=True)
-    channel.queue_declare(queue=QUEUE_RESERVATIONS, durable=True)
-    channel.queue_bind(queue=QUEUE_RESERVATIONS, exchange=EXCHANGE_USUARIO_OLVIDADO, routing_key=ROUTING_KEY)
-    print(f"Subscribed to queue {QUEUE_RESERVATIONS}", flush=True)
+    print("Connecting to Redis...", flush=True)
+    r = redis.from_url(REDIS_URL, decode_responses=True)
+    try:
+        r.xgroup_create(STREAM_USUARIO_OLVIDADO, QUEUE_RESERVATIONS, id="0", mkstream=True)
+    except redis.ResponseError as e:
+        if "BUSYGROUP" not in str(e):
+            raise
+    print(f"Subscribed to stream {STREAM_USUARIO_OLVIDADO} group {QUEUE_RESERVATIONS}", flush=True)
 
-    async def on_message(ch, method, properties, body):
+    consumer_name = f"{QUEUE_RESERVATIONS}-1"
+    while True:
+        msgs = r.xreadgroup(QUEUE_RESERVATIONS, consumer_name, {STREAM_USUARIO_OLVIDADO: ">"}, count=1, block=5000)
+        if not msgs:
+            continue
+        for _stream_name, stream_msgs in msgs:
+            for msg_id, fields in stream_msgs:
+                body = fields.get("payload")
+                try:
+                    payload = UsuarioOlvidadoPayload.model_validate_json(body)
+                    user_id = uuid.UUID(payload.user_id)
+                except Exception:
+                    r.xack(STREAM_USUARIO_OLVIDADO, QUEUE_RESERVATIONS, msg_id)
+                    continue
+                print(f"Received UsuarioOlvidado user_id={user_id}", flush=True)
+                asyncio.run(_process(r, msg_id, user_id))
+
+
+async def _process(r, msg_id: str, user_id: uuid.UUID):
+    async with httpx.AsyncClient() as client:
         try:
-            payload = UsuarioOlvidadoPayload.model_validate_json(body)
-            user_id = uuid.UUID(payload.user_id)
-        except Exception:
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-            return
-        print(f"Received UsuarioOlvidado user_id={user_id}", flush=True)
-        pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=2)
-        try:
-            anon_id = uuid.UUID(ANONYMOUS_USER_ID)
-            res_repo = ReservationRepository(pool, anon_id)
-            audit_repo = AuditRepository(pool)
-            await res_repo.anonymize_user_in_reservations(user_id)
-            await audit_repo.record_completado(user_id, CONSUMER_ID, datetime.utcnow())
+            await client.post(
+                f"{DB_API_URL}/reservations/anonymize",
+                json={"user_id": str(user_id), "anonymous_user_id": ANONYMOUS_USER_ID},
+            )
+            await client.post(
+                f"{DB_API_URL}/audit/completado",
+                json={
+                    "user_id": str(user_id),
+                    "consumer_id": CONSUMER_ID,
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
+            )
             print("Updated reservations with anonymous user_id; recorded completado in audit_events", flush=True)
-        finally:
-            await pool.close()
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-
-    def callback(ch, method, properties, body):
-        asyncio.run(on_message(ch, method, properties, body))
-
-    channel.basic_consume(queue=QUEUE_RESERVATIONS, on_message_callback=callback)
-    channel.start_consuming()
+            r.xack(STREAM_USUARIO_OLVIDADO, QUEUE_RESERVATIONS, msg_id)
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

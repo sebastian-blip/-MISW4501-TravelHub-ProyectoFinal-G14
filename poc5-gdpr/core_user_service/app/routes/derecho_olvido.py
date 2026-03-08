@@ -4,8 +4,7 @@ import uuid
 from ..services.derecho_olvido_service import DerechoOlvidoService
 from ..repositories.user_repository import UserRepository
 from ..repositories.audit_repository import AuditRepository
-from ..config import DATABASE_URL, RABBITMQ_URL
-from ..db import get_pool
+from ..config import REDIS_URL
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -16,13 +15,11 @@ class DerechoOlvidoResponse(BaseModel):
     t0: str | None = None
 
 
-async def get_derecho_olvido_service(
-    pool=Depends(get_pool),
-) -> DerechoOlvidoService:
+def get_derecho_olvido_service() -> DerechoOlvidoService:
     return DerechoOlvidoService(
-        UserRepository(pool),
-        AuditRepository(pool),
-        RABBITMQ_URL,
+        UserRepository(),
+        AuditRepository(),
+        REDIS_URL,
     )
 
 

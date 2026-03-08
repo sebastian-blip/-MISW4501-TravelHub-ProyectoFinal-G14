@@ -1,30 +1,12 @@
 import uuid
-import asyncpg
+from ..db_client import get_user as _get_user, anonymize_user as _anonymize_user
 
 
 class UserRepository:
-    def __init__(self, pool: asyncpg.Pool):
-        self._pool = pool
+    """Uses DB API (DuckDB service)."""
 
     async def get(self, user_id: uuid.UUID) -> dict | None:
-        row = await self._pool.fetchrow(
-            "SELECT id, email, name, anonymized, created_at, updated_at FROM users WHERE id = $1",
-            user_id,
-        )
-        if not row:
-            return None
-        return dict(row)
+        return await _get_user(str(user_id))
 
     async def anonymize(self, user_id: uuid.UUID) -> bool:
-        result = await self._pool.execute(
-            """
-            UPDATE users
-            SET email = 'anon_' || id::text || '@deleted.local',
-                name = 'DELETED',
-                anonymized = TRUE,
-                updated_at = NOW()
-            WHERE id = $1 AND anonymized = FALSE
-            """,
-            user_id,
-        )
-        return result == "UPDATE 1"
+        return await _anonymize_user(str(user_id))

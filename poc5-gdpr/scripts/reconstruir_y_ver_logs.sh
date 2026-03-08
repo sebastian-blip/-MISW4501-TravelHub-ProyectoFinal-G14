@@ -16,7 +16,7 @@ docker compose build --no-cache core-reader-service core-reservations-consumer a
 echo "=== Levantando todo ==="
 docker compose up -d
 
-echo "=== Esperando 15 s a que arranquen RabbitMQ y consumidores ==="
+echo "=== Esperando 15 s a que arranquen Redis y consumidores ==="
 sleep 15
 
 echo "=== Estado de contenedores ==="

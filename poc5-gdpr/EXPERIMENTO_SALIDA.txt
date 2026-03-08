@@ -1,0 +1,138 @@
+=== 2026-03-08T01:30:24-06:00 ===
+
+=== 1. Docker compose down -v (borrar volúmenes, estado inicial) ===
+ Container poc5_gdpr_core_user_service Stopping 
+ Container poc5_gdpr_apoyo_analytics Stopping 
+ Container poc5_gdpr_core_reservations Stopping 
+ Container poc5_gdpr_core_reader Stopping 
+ Container poc5_gdpr_core_user_service Stopped 
+ Container poc5_gdpr_core_user_service Removing 
+ Container poc5_gdpr_core_user_service Removed 
+ Container poc5_gdpr_core_reservations Stopped 
+ Container poc5_gdpr_core_reservations Removing 
+ Container poc5_gdpr_core_reader Stopped 
+ Container poc5_gdpr_core_reader Removing 
+ Container poc5_gdpr_apoyo_analytics Stopped 
+ Container poc5_gdpr_apoyo_analytics Removing 
+ Container poc5_gdpr_core_reservations Removed 
+ Container poc5_gdpr_core_reader Removed 
+ Container poc5_gdpr_apoyo_analytics Removed 
+ Container poc5_gdpr_redis Stopping 
+ Container poc5_gdpr_db Stopping 
+ Container poc5_gdpr_redis Stopped 
+ Container poc5_gdpr_redis Removing 
+ Container poc5_gdpr_redis Removed 
+ Container poc5_gdpr_db Stopped 
+ Container poc5_gdpr_db Removing 
+ Container poc5_gdpr_db Removed 
+ Volume poc5-gdpr_poc5_duckdb_data Removing 
+ Network poc5-gdpr_default Removing 
+ Volume poc5-gdpr_poc5_duckdb_data Removed 
+ Network poc5-gdpr_default Removed 
+
+=== 2. Docker compose up -d (los seis contenedores, incluido apoyo_analytics) ===
+ Network poc5-gdpr_default Creating 
+ Network poc5-gdpr_default Created 
+ Volume poc5-gdpr_poc5_duckdb_data Creating 
+ Volume poc5-gdpr_poc5_duckdb_data Created 
+ Container poc5_gdpr_db Creating 
+ Container poc5_gdpr_redis Creating 
+ Container poc5_gdpr_db Created 
+ Container poc5_gdpr_redis Created 
+ Container poc5_gdpr_apoyo_analytics Creating 
+ Container poc5_gdpr_core_user_service Creating 
+ Container poc5_gdpr_core_reader Creating 
+ Container poc5_gdpr_core_reservations Creating 
+ Container poc5_gdpr_core_user_service Created 
+ Container poc5_gdpr_apoyo_analytics Created 
+ Container poc5_gdpr_core_reader Created 
+ Container poc5_gdpr_core_reservations Created 
+ Container poc5_gdpr_redis Starting 
+ Container poc5_gdpr_db Starting 
+ Container poc5_gdpr_redis Started 
+ Container poc5_gdpr_db Started 
+ Container poc5_gdpr_redis Waiting 
+ Container poc5_gdpr_redis Waiting 
+ Container poc5_gdpr_db Waiting 
+ Container poc5_gdpr_redis Waiting 
+ Container poc5_gdpr_db Waiting 
+ Container poc5_gdpr_db Waiting 
+ Container poc5_gdpr_db Waiting 
+ Container poc5_gdpr_redis Waiting 
+ Container poc5_gdpr_redis Healthy 
+ Container poc5_gdpr_db Healthy 
+ Container poc5_gdpr_db Healthy 
+ Container poc5_gdpr_core_user_service Starting 
+ Container poc5_gdpr_redis Healthy 
+ Container poc5_gdpr_redis Healthy 
+ Container poc5_gdpr_apoyo_analytics Starting 
+ Container poc5_gdpr_db Healthy 
+ Container poc5_gdpr_core_reader Starting 
+ Container poc5_gdpr_redis Healthy 
+ Container poc5_gdpr_db Healthy 
+ Container poc5_gdpr_core_reservations Starting 
+ Container poc5_gdpr_core_reader Started 
+ Container poc5_gdpr_core_reservations Started 
+ Container poc5_gdpr_core_user_service Started 
+ Container poc5_gdpr_apoyo_analytics Started 
+
+=== 3. Esperando 30 s (db DuckDB + Redis y consumidores arrancan) ===
+
+=== 4. Estado de contenedores (deben aparecer los seis) ===
+NAME                          IMAGE                                  COMMAND                  SERVICE                      CREATED          STATUS                    PORTS
+poc5_gdpr_apoyo_analytics     poc5-gdpr-apoyo-analytics-consumer     "python -m apoyo_ana…"   apoyo-analytics-consumer     36 seconds ago   Up 30 seconds             
+poc5_gdpr_core_reader         poc5-gdpr-core-reader-service          "python -m core_read…"   core-reader-service          36 seconds ago   Up 30 seconds             
+poc5_gdpr_core_reservations   poc5-gdpr-core-reservations-consumer   "python -m core_rese…"   core-reservations-consumer   36 seconds ago   Up 30 seconds             
+poc5_gdpr_core_user_service   poc5-gdpr-core-user-service            "uvicorn core_user_s…"   core-user-service            36 seconds ago   Up 30 seconds             0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+poc5_gdpr_db                  poc5-gdpr-db                           "uvicorn app.main:ap…"   db                           36 seconds ago   Up 35 seconds (healthy)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+poc5_gdpr_redis               redis:7-alpine                         "docker-entrypoint.s…"   redis                        36 seconds ago   Up 35 seconds (healthy)   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+
+=== 5. Health ===
+{"status":"ok"}
+
+=== 6. POST derecho-olvido (T0 se registra aquí) ===
+{"ok":true,"message":"Derecho al olvido aceptado. Propagación en curso.","t0":"2026-03-08T07:31:02.923855Z"}
+
+=== 7. Esperando 10 s a que los tres consumidores procesen ===
+
+=== 8. Users (DuckDB API) ===
+{"id":"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11","email":"anon_a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11@deleted.local","name":"DELETED","anonymized":true,"created_at":"2026-03-08T07:30:27.441943","updated_at":"2026-03-08T07:31:02.930685"}
+=== 9. User read model ===
+{"rows":[{"id":"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11","email":"anon_a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11@deleted.local","name":"DELETED","anonymized":true}]}
+=== 10. Reservations ===
+{"rows":[{"id":"abd87f8b-86d6-4f9f-8690-774047fba348","user_id":"00000000-0000-0000-0000-000000000001"}]}
+=== 11. Analytics ===
+{"rows":[{"id":"37ac3d58-e4ac-4d8d-925b-aa5af9bfdaef","user_id":"00000000-0000-0000-0000-000000000001","anonymized":true}]}
+=== 12. Audit events (debe haber 1 solicitud_olvido + 3 completado: reader, reservations, analytics) ===
+{"events":[{"event_type":"solicitud_olvido","user_id":"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11","consumer_id":null,"timestamp":"2026-03-08T07:31:02.923855"},{"event_type":"completado","user_id":"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11","consumer_id":"analytics","timestamp":"2026-03-08T07:31:02.983657"},{"event_type":"completado","user_id":"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11","consumer_id":"reservations","timestamp":"2026-03-08T07:31:02.985381"},{"event_type":"completado","user_id":"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11","consumer_id":"reader","timestamp":"2026-03-08T07:31:02.987272"}]}
+=== 13. API TFO (debe incluir T1, T2, T3) ===
+{"user_id":"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11","t0":"2026-03-08T07:31:02.923855","completados":[{"consumer_id":"analytics","timestamp":"2026-03-08T07:31:02.983657"},{"consumer_id":"reservations","timestamp":"2026-03-08T07:31:02.985381"},{"consumer_id":"reader","timestamp":"2026-03-08T07:31:02.987272"}],"tfo_seconds":0.06,"tfo_under_3_min":true}
+
+=== 14. Logs Core User Service ===
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     172.64.144.78:42309 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.64.144.78:22971 - "POST /users/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/derecho-olvido HTTP/1.1" 200 OK
+INFO:     172.64.144.78:25916 - "GET /audit/tfo/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11 HTTP/1.1" 200 OK
+
+=== 15. Logs Core Reader ===
+Connecting to Redis...
+Subscribed to stream stream:usuario_olvidado group reader
+Received UsuarioOlvidado user_id=a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+Anonymized user in read model; recorded completado in audit_events
+
+=== 16. Logs Core Reservations ===
+Connecting to Redis...
+Subscribed to stream stream:usuario_olvidado group reservations
+Received UsuarioOlvidado user_id=a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+Updated reservations with anonymous user_id; recorded completado in audit_events
+
+=== 17. Logs Apoyo Analytics ===
+Connecting to Redis...
+Subscribed to stream stream:usuario_olvidado group analytics
+Received UsuarioOlvidado user_id=a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+Anonymized analytics_user_activity; recorded completado in audit_events
+
+=== FIN. Abre /Users/hvlopez/uniandes/-MISW4501-TravelHub-ProyectoFinal-G14/poc5-gdpr/EXPERIMENTO_SALIDA.txt y copia cada sección al informe (Anexo A y B). ===

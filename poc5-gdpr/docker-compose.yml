@@ -1,38 +1,34 @@
 # PoC-5 GDPR - Derecho al olvido (experiment)
-# Core: user_service, reader_service, reservations_consumer | Apoyo: analytics_consumer
+# DB: DuckDB (db_service HTTP API) | Broker: Redis (Redis Streams)
 
 services:
   db:
-    image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile: db_service/Dockerfile
     container_name: poc5_gdpr_db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: poc5_gdpr
+      DATABASE_PATH: /data/poc5_gdpr.duckdb
     ports:
-      - "5433:5432"
+      - "8080:8080"
     volumes:
-      - poc5_postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - poc5_duckdb_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d poc5_gdpr"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 5
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: poc5_gdpr_rabbitmq
+  redis:
+    image: redis:7-alpine
+    container_name: poc5_gdpr_redis
+    command: redis-server --appendonly yes
     ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      - "6379:6379"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 5
 
   core-user-service:
@@ -42,11 +38,11 @@ services:
     container_name: poc5_gdpr_core_user_service
     restart: on-failure
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      DB_API_URL: http://db:8080
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       db: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
     ports:
       - "8000:8000"
 
@@ -57,12 +53,11 @@ services:
     container_name: poc5_gdpr_core_reader
     restart: on-failure
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-      AUDIT_DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+      DB_API_URL: http://db:8080
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       db: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
 
   core-reservations-consumer:
     build:
@@ -71,12 +66,11 @@ services:
     container_name: poc5_gdpr_core_reservations
     restart: on-failure
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-      AUDIT_DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
+      DB_API_URL: http://db:8080
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       db: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
 
   apoyo-analytics-consumer:
     build:
@@ -85,14 +79,13 @@ services:
     container_name: poc5_gdpr_apoyo_analytics
     restart: on-failure
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-      AUDIT_DATABASE_URL: postgres://postgres:postgres@db:5432/poc5_gdpr
-      # Para reproducir Unhappy 2 (Analytics lento): DELAY_ANALYTICS_SEC=15; operación normal: 0
+      DB_API_URL: http://db:8080
+      REDIS_URL: redis://redis:6379/0
       DELAY_ANALYTICS_SEC: "0"
+      ANONYMOUS_USER_ID: "00000000-0000-0000-0000-000000000001"
     depends_on:
       db: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
 
 volumes:
-  poc5_postgres_data:
+  poc5_duckdb_data:

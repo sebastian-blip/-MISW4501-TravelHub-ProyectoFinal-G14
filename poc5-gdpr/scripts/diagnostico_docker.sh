@@ -18,9 +18,9 @@ echo "=== 3. Build con salida visible (core-user-service) ==="
 docker compose build --progress=plain core-user-service 2>&1
 echo ""
 
-echo "=== 4. Levantar solo DB y RabbitMQ primero ==="
-docker compose up -d db rabbitmq
-echo "Esperando 15 s a que postgres y rabbitmq estén healthy..."
+echo "=== 4. Levantar solo DB y Redis primero ==="
+docker compose up -d db redis
+echo "Esperando 15 s a que db (DuckDB) y redis estén healthy..."
 sleep 15
 docker compose ps
 echo ""

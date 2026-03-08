@@ -1,5 +1,5 @@
 """
-Reader service: runs the RabbitMQ consumer (CQRS read model updater).
+Reader service: runs the Redis Streams consumer (CQRS read model updater).
 """
 from .consumer import run_consumer
 

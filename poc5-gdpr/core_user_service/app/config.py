@@ -1,4 +1,4 @@
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5433/poc5_gdpr")
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+DB_API_URL = os.getenv("DB_API_URL", "http://localhost:8080")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")

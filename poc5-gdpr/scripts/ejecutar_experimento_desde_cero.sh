@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Ejecuta todo el experimento desde cero: borra volúmenes, levanta los seis
-# contenedores (incluido Analytics), espera a init.sql y consumidores, dispara
+# contenedores (db DuckDB, Redis, User Service, Reader, Reservations, Analytics), dispara
 # derecho al olvido y captura toda la salida en EXPERIMENTO_SALIDA.txt.
 # Uso: cd poc5-gdpr && ./scripts/ejecutar_experimento_desde_cero.sh
 
@@ -26,7 +26,7 @@ echo "=== 2. Docker compose up -d (los seis contenedores, incluido apoyo_analyti
 docker compose up -d
 echo ""
 
-echo "=== 3. Esperando 30 s (init.sql crea usuario de prueba; RabbitMQ y consumidores arrancan) ==="
+echo "=== 3. Esperando 30 s (db DuckDB + Redis y consumidores arrancan) ==="
 sleep 30
 echo ""
 
@@ -48,24 +48,24 @@ echo "=== 7. Esperando 10 s a que los tres consumidores procesen ==="
 sleep 10
 echo ""
 
-echo "=== 8. Users ==="
-docker exec poc5_gdpr_db psql -U postgres -d poc5_gdpr -c "SELECT id, email, name, anonymized FROM users WHERE id = '${USER_ID}';" 2>/dev/null || echo "(fallo)"
+echo "=== 8. Users (DuckDB API) ==="
+curl -s "http://localhost:8080/users/${USER_ID}" 2>/dev/null || echo "(fallo)"
 echo ""
 
 echo "=== 9. User read model ==="
-docker exec poc5_gdpr_db psql -U postgres -d poc5_gdpr -c "SELECT id, email, name, anonymized FROM user_read_model WHERE id = '${USER_ID}';" 2>/dev/null || echo "(fallo)"
+curl -s "http://localhost:8080/evidence/read-model" 2>/dev/null || echo "(fallo)"
 echo ""
 
 echo "=== 10. Reservations ==="
-docker exec poc5_gdpr_db psql -U postgres -d poc5_gdpr -c "SELECT id, user_id FROM reservations LIMIT 5;" 2>/dev/null || echo "(fallo)"
+curl -s "http://localhost:8080/evidence/reservations" 2>/dev/null || echo "(fallo)"
 echo ""
 
 echo "=== 11. Analytics ==="
-docker exec poc5_gdpr_db psql -U postgres -d poc5_gdpr -c "SELECT id, user_id, anonymized FROM analytics_user_activity LIMIT 5;" 2>/dev/null || echo "(fallo)"
+curl -s "http://localhost:8080/evidence/analytics" 2>/dev/null || echo "(fallo)"
 echo ""
 
 echo "=== 12. Audit events (debe haber 1 solicitud_olvido + 3 completado: reader, reservations, analytics) ==="
-docker exec poc5_gdpr_db psql -U postgres -d poc5_gdpr -c "SELECT event_type, user_id, consumer_id, timestamp FROM audit_events ORDER BY timestamp;" 2>/dev/null || echo "(fallo)"
+curl -s "http://localhost:8080/audit/events" 2>/dev/null || echo "(fallo)"
 echo ""
 
 echo "=== 13. API TFO (debe incluir T1, T2, T3) ==="

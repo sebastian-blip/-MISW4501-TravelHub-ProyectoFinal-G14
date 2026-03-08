@@ -1,6 +1,6 @@
 # PoC-5 GDPR / LGPD — Derecho al olvido (experimento)
 
-Experimento de arquitectura para validar el **derecho al olvido** y la **auditoría** en red distribuida (Historia A5). Solo los componentes del experimento: User Service (writer), Reader, Reservations, Analytics + RabbitMQ + auditoría.
+Experimento de arquitectura para validar el **derecho al olvido** y la **auditoría** en red distribuida (Historia A5). Solo los componentes del experimento: User Service (writer), Reader, Reservations, Analytics + **Redis** (Redis Streams) + auditoría.
 
 ## Estilo por servicio (Vista Funcional)
 
@@ -19,8 +19,8 @@ docker compose up --build
 ```
 
 - **User Service API (core):** http://localhost:8000  
-- **RabbitMQ Management:** http://localhost:15672 (guest/guest)  
-- **PostgreSQL:** localhost:5433 (postgres/postgres, DB `poc5_gdpr`)
+- **Redis:** localhost:6379 (stream `stream:usuario_olvidado`, consumer groups: reader, reservations, analytics)  
+- **DB (DuckDB):** http://localhost:8080 (API del servicio `db`; almacén DuckDB en `/data`)
 
 ## Flujo
 
@@ -37,4 +37,4 @@ curl http://localhost:8000/audit/tfo/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 ## Usuario de prueba
 
 - **ID:** `a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11`  
-- Creado por `init.sql`. Ejecutar derecho al olvido contra este ID para probar el happy path.
+- Creado por el servicio `db` (DuckDB) al iniciar. Ejecutar derecho al olvido contra este ID para probar el happy path.

@@ -4,8 +4,8 @@ from uuid import UUID
 from datetime import date
 
 from mediatr import Mediator
-from poc1.hotel_service.queries.get_reservation_query import GetReservationsQuery, ReservationResponse
-import poc1.hotel_service.queries.get_reservation_handler  # Esto registra el handler
+from hotel_service.queries.get_reservation_query import GetReservationsQuery, ReservationResponse
+import hotel_service.queries.get_reservation_handler  # Esto registra el handler
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 

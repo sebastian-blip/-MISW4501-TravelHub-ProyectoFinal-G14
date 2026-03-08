@@ -9,6 +9,7 @@ class CreateReservationCommand:
     user_id: UUID
     check_in: date
     check_out: date
+    total_price: float
 
 @dataclass
 class ReservationCreatedResponse:

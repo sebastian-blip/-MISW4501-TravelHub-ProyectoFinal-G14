@@ -1,9 +1,11 @@
 from typing import Optional, List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from mediatr import Mediator
 
-from poc1.hotel_service.queries.get_hotels_query import GetHotelsQuery, HotelResponse
-import poc1.hotel_service.queries.get_hotels_handler  # registra el handler
+from hotel_service.queries.get_hotels_query import GetHotelsQuery, HotelResponse
+from hotel_service.availability.queries import SearchAvailableHotelsQuery, AvailableHotelResponse
+import hotel_service.queries.get_hotels_handler  # registra el handler
+import hotel_service.availability.queries  # registra handler del read model
 
 router = APIRouter(prefix="/hotels", tags=["Hotels"])
 
@@ -18,3 +20,11 @@ async def get_hotels(
     mediator: Mediator = Depends(get_mediator),
 ):
     return await mediator.send(GetHotelsQuery(city=city))
+
+
+@router.get("/search", response_model=List[AvailableHotelResponse])
+async def search_available_hotels(
+    city: Optional[str] = Query(None),
+    mediator: Mediator = Depends(get_mediator),
+):
+    return await mediator.send(SearchAvailableHotelsQuery(city=city))

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from poc1.domain.models.hotel import Hotel
+from domain.models.hotel import Hotel
 
 
 class HotelRepository:

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS hotels (
     address     TEXT         NOT NULL,
     stars       INTEGER      DEFAULT 3,
     active      BOOLEAN      DEFAULT TRUE,
-    created_at  TIMESTAMP    DEFAULT NOW()
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS rooms (
@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     check_out    DATE           NOT NULL,
     total_price  NUMERIC(10, 2) NOT NULL,
     status       VARCHAR(50)    DEFAULT 'pending',
-    created_at   TIMESTAMP      DEFAULT NOW(),
-    updated_at   TIMESTAMP      DEFAULT NOW()
+    created_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 INSERT INTO hotels (name, city, country, address, stars, active, created_at) VALUES
@@ -45,5 +45,4 @@ INSERT INTO rooms (hotel_id, room_type, price_per_night, capacity)
 SELECT id, 'suite', 250.00, 4 FROM hotels WHERE name = 'Hotel Bogotá Plaza';
 
 INSERT INTO rooms (hotel_id, room_type, price_per_night, capacity)
-SELECT id, 'single', 80.00, 1 FROM hotels WHERE name = 'Casa Andina';
 SELECT id, 'single', 80.00, 1 FROM hotels WHERE name = 'Casa Andina';

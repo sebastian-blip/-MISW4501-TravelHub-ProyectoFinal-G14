@@ -1,5 +1,5 @@
 from typing import Optional
-from poc1.domain.models.reservation import Reservation
+from domain.models.reservation import Reservation
 
 
 class ReservationRepository:

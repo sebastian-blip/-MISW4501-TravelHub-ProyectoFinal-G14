@@ -1,8 +1,8 @@
 from typing import List
 from mediatr import Mediator
 
-from poc1.hotel_service.queries.get_hotels_query import GetHotelsQuery, HotelResponse
-from poc1.hotel_service.repository.hotel_repository import HotelRepository
+from hotel_service.queries.get_hotels_query import GetHotelsQuery, HotelResponse
+from hotel_service.repository.hotel_repository import HotelRepository
 
 
 @Mediator.handler

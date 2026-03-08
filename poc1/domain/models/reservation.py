@@ -1,5 +1,6 @@
 from tortoise import fields
 from tortoise.models import Model
+from hotel_service.utils.datetime import ensure_utc
 
 
 class Reservation(Model):

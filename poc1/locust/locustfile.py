@@ -1,4 +1,4 @@
-from locust import HttpUser, task, between, events
+from locust import HttpUser, task, between, events, constant
 import random
 import uuid
 from datetime import date, timedelta
@@ -8,17 +8,19 @@ import time
 # ciudades usadas para el experimento
 CITIES = ["Cali", "Bogotá"]
 
-# almacenamiento compartido
-reserved_rooms = {}
-reported_inconsistencies = set()
-
 lock = Lock()
+reserved_rooms = {}
+pending_checks = {}
+reported_inconsistencies = set()
 
 # métricas del experimento
 total_reservations = 0
 total_reads = 0
 inconsistent_reads = 0
 consistency_delays = []
+inconsistent_reservations = 0
+resolved_reservations = 0
+MIN_CONSISTENCY_DELAY = 4
 
 
 def random_dates():
@@ -29,7 +31,7 @@ def random_dates():
 
 class WriterUser(HttpUser):
 
-    wait_time = between(0.5, 1.5)
+    wait_time = constant(1)
 
     @task
     def reservar_habitacion(self):
@@ -78,7 +80,11 @@ class WriterUser(HttpUser):
             key = f"{hotel_id}-{room_id}"
 
             with lock:
-                reserved_rooms[key] = time.time()
+                reserved_rooms[key] = {
+                    "created_at": time.time(),
+                    "city": city,
+                    "reported": False,
+                }
                 total_reservations += 1
 
             print(f"✅ Reservation created {key}")
@@ -86,13 +92,15 @@ class WriterUser(HttpUser):
 
 class ReaderUser(HttpUser):
 
-    wait_time = between(0.2, 1)
+    wait_time = constant(5)
 
     @task
     def buscar_disponibilidad(self):
 
         global total_reads
         global inconsistent_reads
+        global inconsistent_reservations
+        global resolved_reservations
 
         city = random.choice(CITIES)
 
@@ -110,30 +118,44 @@ class ReaderUser(HttpUser):
             f"{room['hotel_id']}-{room['room_id']}" for room in availability
         }
 
+        now = time.time()
         with lock:
-            reserved_copy = reserved_rooms.copy()
+            reserved_copy = {key: value.copy() for key, value in reserved_rooms.items()}
 
         found_inconsistency = False
 
-        for key, reservation_time in reserved_copy.items():
+        for key, info in reserved_copy.items():
+
+            if info["city"] != city:
+                continue
+
+            delay = now - info["created_at"]
+
+            if delay < MIN_CONSISTENCY_DELAY:
+                continue
 
             if key in visible_rooms:
 
                 found_inconsistency = True
 
-                if key not in reported_inconsistencies:
+                if not info["reported"]:
 
                     reported_inconsistencies.add(key)
 
-                    delay = time.time() - reservation_time
-
                     with lock:
-                        consistency_delays.append(delay)
+                        reserved_rooms[key]["reported"] = True
+                        inconsistent_reservations += 1
 
                     print(
                         f"⚠️ Inconsistency detected for {key} "
-                        f"(delay {round(delay,2)}s)"
+                        f"(delay {round(now - info['created_at'],2)}s)"
                     )
+            else:
+
+                with lock:
+                    consistency_delays.append(delay)
+                    resolved_reservations += 1
+                    reserved_rooms.pop(key, None)
 
         with lock:
             total_reads += 1
@@ -156,6 +178,10 @@ def on_test_stop(environment, **kwargs):
     if total_reads > 0:
         rate = (inconsistent_reads / total_reads) * 100
         print(f"Inconsistency rate: {round(rate,2)} %")
+
+    print(f"Inconsistent reservations observed: {inconsistent_reservations}")
+    print(f"Resolved reservations: {resolved_reservations}/{total_reservations}")
+    print(f"Pending consistency checks: {len(reserved_rooms)}")
 
     if consistency_delays:
         avg_delay = sum(consistency_delays) / len(consistency_delays)

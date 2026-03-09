@@ -2,56 +2,71 @@ import asyncio
 import json
 import time
 import logging
-from typing import Optional
+import os
+from typing import List
 
 from aiokafka import AIOKafkaConsumer
-import time
-import logging
 
 from hotel_service.events.reservation_events import ReservationCreatedEvent
 from hotel_service.availability.repository import HotelAvailabilityRepository
 from hotel_service.metrics import reservations_consumed_total, reservation_consistency_lag_seconds
 
 
+DEFAULT_KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "travelhub_kafka:9092")
+DEFAULT_AVAILABILITY_CONSUMER_COUNT = int(os.getenv("AVAILABILITY_CONSUMER_COUNT", "4"))
+
+
 class AvailabilityReadModelConsumer:
-    def __init__(self, bootstrap_servers: str = "travelhub_kafka:9092", topic: str = "reservation-created", group_id: str = "hotel-availability-readmodel"):
+    def __init__(
+        self,
+        bootstrap_servers: str = DEFAULT_KAFKA_BOOTSTRAP_SERVERS,
+        topic: str = "reservation-created",
+        group_id: str = "hotel-availability-readmodel",
+        consumer_count: int = DEFAULT_AVAILABILITY_CONSUMER_COUNT,
+    ):
         self.bootstrap_servers = bootstrap_servers
         self.topic = topic
         self.group_id = group_id
-        self._consumer: Optional[AIOKafkaConsumer] = None
-        self._task: Optional[asyncio.Task] = None
+        self.consumer_count = max(1, consumer_count)
+        self._consumers: List[AIOKafkaConsumer] = []
+        self._tasks: List[asyncio.Task] = []
         self._running = False
         self.repository = HotelAvailabilityRepository()
 
     async def start(self):
         await self.repository.seed_from_rooms()
-        self._consumer = AIOKafkaConsumer(
-            self.topic,
-            group_id=self.group_id,
-            bootstrap_servers=self.bootstrap_servers,
-            enable_auto_commit=True,
-            auto_offset_reset="earliest",
-        )
-        await self._consumer.start()
         self._running = True
-        self._task = asyncio.create_task(self._consume())
+        for worker_index in range(self.consumer_count):
+            consumer = AIOKafkaConsumer(
+                self.topic,
+                group_id=self.group_id,
+                bootstrap_servers=self.bootstrap_servers,
+                client_id=f"availability-consumer-{worker_index}",
+                enable_auto_commit=True,
+                auto_offset_reset="earliest",
+            )
+            await consumer.start()
+            self._consumers.append(consumer)
+            task = asyncio.create_task(self._consume(consumer))
+            self._tasks.append(task)
 
     async def stop(self):
         self._running = False
-        if self._task:
-            self._task.cancel()
+        for task in self._tasks:
+            task.cancel()
+        for task in self._tasks:
             try:
-                await self._task
+                await task
             except asyncio.CancelledError:
                 pass
-        if self._consumer:
-            await self._consumer.stop()
+        for consumer in self._consumers:
+            await consumer.stop()
+        self._tasks.clear()
+        self._consumers.clear()
 
-    async def _consume(self):
-        if not self._consumer:
-            return
+    async def _consume(self, consumer: AIOKafkaConsumer):
         try:
-            async for msg in self._consumer:
+            async for msg in consumer:
                 payload = json.loads(msg.value.decode("utf-8"))
                 await self._handle(payload)
                 if not self._running:

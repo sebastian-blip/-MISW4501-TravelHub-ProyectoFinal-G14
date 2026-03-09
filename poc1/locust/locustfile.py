@@ -29,7 +29,6 @@ def random_dates():
 
 class WriterUser(HttpUser):
 
-    weight = 1
     wait_time = between(0.5, 1.5)
 
     @task
@@ -87,7 +86,6 @@ class WriterUser(HttpUser):
 
 class ReaderUser(HttpUser):
 
-    weight = 10
     wait_time = between(0.2, 1)
 
     @task

@@ -34,8 +34,8 @@ def _ensure_kafka_vendor_six_moves():
 _ensure_kafka_vendor_six_moves()
 
 
-DEV = False
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "travelhub_kafka:9092")
+DEV = True
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 
 print(f"Starting TravelHub API with Kafka bootstrap servers: {KAFKA_BOOTSTRAP_SERVERS}")
 

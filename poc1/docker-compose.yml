@@ -36,9 +36,9 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://travelhub_kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 4
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
   prometheus:
     image: prom/prometheus
@@ -52,23 +52,6 @@ services:
     ports:
       - "3000:3000"
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: travelhub_api
-    depends_on:
-      - db
-      - kafka
-    ports:
-      - "8000:8000"
-    environment:
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: travelhub
-      KAFKA_BOOTSTRAP_SERVERS: travelhub_kafka:9092
 
 volumes:
   postgres_data:

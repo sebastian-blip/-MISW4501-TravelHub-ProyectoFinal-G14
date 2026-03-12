@@ -92,7 +92,7 @@ class WriterUser(HttpUser):
 
 class ReaderUser(HttpUser):
 
-    wait_time = constant(5)
+    wait_time = constant(10)
 
     @task
     def buscar_disponibilidad(self):

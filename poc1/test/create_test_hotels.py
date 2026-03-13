@@ -7,7 +7,7 @@ CIUDADES = ["Cali", "Bogotá"]
 
 async def seed_hotels():
 
-    for x in range(600):
+    for x in range(7000):
         ciudad = random.choice(CIUDADES)
         hotel_id = uuid.uuid4()
         hotel = await Hotel.create(

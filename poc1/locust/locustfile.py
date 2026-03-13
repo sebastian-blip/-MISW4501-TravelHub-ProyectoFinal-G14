@@ -40,8 +40,12 @@ class WriterUser(HttpUser):
 
         city = random.choice(CITIES)
 
+        skip = 0
+        limit = 10
+
+
         response = self.client.get(
-            f"/hotels/search?city={city}",
+            f"/hotels/search?city={city}&skip={skip}&limit={limit}",
             name="/hotels/search"
         )
 
@@ -49,6 +53,9 @@ class WriterUser(HttpUser):
             return
 
         availability = response.json()
+
+        if not availability:
+            return
 
         if not availability:
             return
@@ -92,7 +99,7 @@ class WriterUser(HttpUser):
 
 class ReaderUser(HttpUser):
 
-    wait_time = constant(10)
+    wait_time = constant(5)
 
     @task
     def buscar_disponibilidad(self):
@@ -104,18 +111,35 @@ class ReaderUser(HttpUser):
 
         city = random.choice(CITIES)
 
-        response = self.client.get(
-            f"/hotels/search?city={city}",
-            name="/hotels/search"
-        )
+        # 🔄 Obtener TODOS los datos con paginación
+        all_availability = []
+        skip = 0
+        limit = 100
 
-        if response.status_code != 200:
-            return
+        while True:
+            response = self.client.get(
+                f"/hotels/search?city={city}&skip={skip}&limit={limit}",
+                name="/hotels/search"
+            )
 
-        availability = response.json()
+            if response.status_code != 200:
+                return
+
+            availability = response.json()
+
+            if not availability:
+                break
+
+            all_availability.extend(availability)
+
+            # 🛑 Parar cuando reciba menos de lo pedido
+            if len(availability) < limit:
+                break
+
+            skip += limit
 
         visible_rooms = {
-            f"{room['hotel_id']}-{room['room_id']}" for room in availability
+            f"{room['hotel_id']}-{room['room_id']}" for room in all_availability
         }
 
         now = time.time()

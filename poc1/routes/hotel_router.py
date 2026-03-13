@@ -25,6 +25,15 @@ async def get_hotels(
 @router.get("/search", response_model=List[AvailableHotelResponse])
 async def search_available_hotels(
     city: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
     mediator: Mediator = Depends(get_mediator),
 ):
-    return await mediator.send(SearchAvailableHotelsQuery(city=city))
+    result = await mediator.send(
+        SearchAvailableHotelsQuery(
+            city=city,
+            skip=skip,
+            limit=limit
+        )
+    )
+    return result.data  # ✅ Retorna solo la lista

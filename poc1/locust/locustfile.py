@@ -111,10 +111,10 @@ class ReaderUser(HttpUser):
 
         city = random.choice(CITIES)
 
-        # 🔄 Obtener TODOS los datos con paginación
-        all_availability = []
+        # 🔄 Obtener datos CON PAGINACIÓN - buscar inconsistencias por página
         skip = 0
         limit = 100
+        found_inconsistency = False
 
         while True:
             response = self.client.get(
@@ -130,56 +130,57 @@ class ReaderUser(HttpUser):
             if not availability:
                 break
 
-            all_availability.extend(availability)
+            # 🔍 Procesar esta página y buscar inconsistencias
+            visible_rooms = {
+                f"{room['hotel_id']}-{room['room_id']}" for room in availability
+            }
 
-            # 🛑 Parar cuando reciba menos de lo pedido
+            now = time.time()
+            with lock:
+                reserved_copy = {key: value.copy() for key, value in reserved_rooms.items()}
+
+            # ✅ Verificar inconsistencias EN ESTA PÁGINA
+            for key, info in reserved_copy.items():
+
+                if info["city"] != city:
+                    continue
+
+                delay = now - info["created_at"]
+
+                if delay < MIN_CONSISTENCY_DELAY:
+                    continue
+
+                if key in visible_rooms:
+                    # 🔴 Inconsistencia encontrada en esta página
+                    found_inconsistency = True
+
+                    if not info["reported"]:
+                        reported_inconsistencies.add(key)
+
+                        with lock:
+                            reserved_rooms[key]["reported"] = True
+                            inconsistent_reservations += 1
+
+                        print(
+                            f"⚠️ Inconsistency detected for {key} "
+                            f"(delay {round(now - info['created_at'],2)}s)"
+                        )
+                else:
+                    # ✅ La reserva ya no es visible (consistencia resuelta)
+                    with lock:
+                        consistency_delays.append(delay)
+                        resolved_reservations += 1
+                        reserved_rooms.pop(key, None)
+
+            # 🛑 Si encontramos inconsistencia, salir del bucle
+            if found_inconsistency:
+                break
+
+            # 🛑 Si recibimos menos de lo pedido, llegamos al final
             if len(availability) < limit:
                 break
 
             skip += limit
-
-        visible_rooms = {
-            f"{room['hotel_id']}-{room['room_id']}" for room in all_availability
-        }
-
-        now = time.time()
-        with lock:
-            reserved_copy = {key: value.copy() for key, value in reserved_rooms.items()}
-
-        found_inconsistency = False
-
-        for key, info in reserved_copy.items():
-
-            if info["city"] != city:
-                continue
-
-            delay = now - info["created_at"]
-
-            if delay < MIN_CONSISTENCY_DELAY:
-                continue
-
-            if key in visible_rooms:
-
-                found_inconsistency = True
-
-                if not info["reported"]:
-
-                    reported_inconsistencies.add(key)
-
-                    with lock:
-                        reserved_rooms[key]["reported"] = True
-                        inconsistent_reservations += 1
-
-                    print(
-                        f"⚠️ Inconsistency detected for {key} "
-                        f"(delay {round(now - info['created_at'],2)}s)"
-                    )
-            else:
-
-                with lock:
-                    consistency_delays.append(delay)
-                    resolved_reservations += 1
-                    reserved_rooms.pop(key, None)
 
         with lock:
             total_reads += 1

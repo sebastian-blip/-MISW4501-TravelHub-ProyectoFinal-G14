@@ -1,0 +1,222 @@
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true = no login/push a AWS ni commit de manifests"
+        required: false
+        default: "true"
+      only_changed:
+        description: "true = procesa solo servicios que cambiaron"
+        required: false
+        default: "true"
+  pull_request:
+    paths:
+      - "services/**"
+      - "k8s/**"
+  push:
+    branches: ["main"]
+    paths:
+      - "services/**"
+      - "k8s/**"
+
+permissions:
+  id-token: write   # OIDC (cuando tengas AWS)
+  contents: write   # commit manifests (cuando dry_run=false)
+  pull-requests: read
+
+env:
+  SERVICES_DIR: "services"
+  K8S_DIR: "k8s"
+
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+  ECR_REPO_PREFIX: ${{ vars.ECR_REPO_PREFIX }}
+
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.out.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq (should already exist, but ensure)
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq --version
+
+      - id: out
+        name: Detect services under services/*
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ ! -d "${SERVICES_DIR}" ]; then
+            echo 'services=[]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # List all service dirs
+          all_svcs=$(find "${SERVICES_DIR}" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+
+          only_changed="${{ github.event.inputs.only_changed }}"
+          if [ -z "$only_changed" ]; then
+            # default for push/PR events: true
+            only_changed="true"
+          fi
+
+          # Determine changed services (best-effort)
+          if [ "$only_changed" = "true" ]; then
+            base=""
+            head=""
+
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              base="${{ github.event.pull_request.base.sha }}"
+              head="${{ github.event.pull_request.head.sha }}"
+            else
+              # push
+              base="${{ github.event.before }}"
+              head="${{ github.sha }}"
+            fi
+
+            # If base is empty (e.g., first commit), fallback to all services
+            if [ -n "$base" ] && [ "$base" != "0000000000000000000000000000000000000000" ]; then
+              changed_paths=$(git diff --name-only "$base" "$head" || true)
+              changed_svcs=$(echo "$changed_paths" \
+                | awk -F/ -v sd="${SERVICES_DIR}" '$1==sd {print $2}' \
+                | sort -u)
+
+              if [ -n "$changed_svcs" ]; then
+                svcs="$changed_svcs"
+              else
+                svcs=""
+              fi
+            else
+              svcs="$all_svcs"
+            fi
+          else
+            svcs="$all_svcs"
+          fi
+
+          json=$(printf '%s\n' $svcs | sed '/^$/d' | jq -R . | jq -s .)
+          echo "services=$json" >> "$GITHUB_OUTPUT"
+          echo "Services matrix: $json"
+
+  build_push_bump:
+    needs: detect
+    if: ${{ needs.detect.outputs.services != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.detect.outputs.services) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide dry-run
+        id: dry
+        shell: bash
+        run: |
+          set -euo pipefail
+          dry="${{ github.event.inputs.dry_run }}"
+          if [ -z "$dry" ]; then dry="false"; fi
+          echo "dry_run=$dry" >> "$GITHUB_OUTPUT"
+
+      # ===== AWS auth (solo cuando exista cuenta/role/vars) =====
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ steps.dry.outputs.dry_run != 'true' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: ${{ steps.dry.outputs.dry_run != 'true' }}
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        shell: bash
+        run: |
+          set -euo pipefail
+          svc="${{ matrix.service }}"
+
+          # Image ref (ECR). Si aún no tienes ECR vars, igual construye con un tag local.
+          if [ -n "${ECR_REGISTRY}" ] && [ -n "${ECR_REPO_PREFIX}" ]; then
+            image="${ECR_REGISTRY}/${ECR_REPO_PREFIX}/${svc}:${IMAGE_TAG}"
+          else
+            image="local/${svc}:${IMAGE_TAG}"
+          fi
+
+          echo "IMAGE=$image" >> "$GITHUB_ENV"
+          docker build -t "$image" "${SERVICES_DIR}/${svc}"
+
+      - name: Push image to ECR
+        if: ${{ steps.dry.outputs.dry_run != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # En modo real, ECR vars deben existir
+          if [ -z "${ECR_REGISTRY}" ] || [ -z "${ECR_REPO_PREFIX}" ]; then
+            echo "ECR_REGISTRY/ECR_REPO_PREFIX not set"
+            exit 1
+          fi
+          docker push "$IMAGE"
+
+      - name: Install kustomize (only if needed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v kustomize >/dev/null 2>&1; then
+            kustomize version
+            exit 0
+          fi
+          curl -sSL -o kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/latest/download/kustomize_linux_amd64.tar.gz"
+          tar -xzf kustomize.tar.gz
+          sudo mv kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Bump k8s manifests image tag (k8s/<svc>/kustomization.yaml)
+        shell: bash
+        run: |
+          set -euo pipefail
+          svc="${{ matrix.service }}"
+          dir="${K8S_DIR}/${svc}"
+          kfile="${dir}/kustomization.yaml"
+
+          if [ ! -f "$kfile" ]; then
+            echo "No ${kfile}; skipping bump for ${svc}"
+            exit 0
+          fi
+
+          # Solo podemos setear una imagen real si tienes ECR vars
+          if [ -z "${ECR_REGISTRY}" ] || [ -z "${ECR_REPO_PREFIX}" ]; then
+            echo "ECR vars not set; skipping bump (set vars later)"
+            exit 0
+          fi
+
+          repo="${ECR_REGISTRY}/${ECR_REPO_PREFIX}/${svc}"
+          (cd "$dir" && kustomize edit set image "${repo}=${repo}:${IMAGE_TAG}")
+
+      - name: Commit and push k8s bumps
+        if: ${{ steps.dry.outputs.dry_run != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git status --porcelain | grep -q .; then
+            git add "${K8S_DIR}"
+            git commit -m "chore(k8s): bump image for ${{ matrix.service }} to ${{ github.sha }}"
+            git push
+          else
+            echo "No changes to commit"
+          fi

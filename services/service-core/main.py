@@ -1,16 +1,22 @@
 from dotenv import load_dotenv
-load_dotenv()  # carga services/service-core/.env antes de leer os.getenv()
+load_dotenv()
 
+import os
 import logging
 from contextlib import asynccontextmanager
+from types import ModuleType
 
 from fastapi import FastAPI
 from tortoise import Tortoise
 
 from infrastructure.database import init_db
+from infrastructure.messaging.kafka.producer import start_producer, stop_producer
+from infrastructure.messaging.kafka.reply_consumer import start_reply_consumer, stop_reply_consumer
 from routes.health_router import router as health_router
 from routes.auth_router import router as auth_router
 from routes.user_router import router as user_router
+
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,10 +24,33 @@ logging.basicConfig(
 )
 
 
+def _ensure_kafka_vendor_six_moves():
+    import sys
+    name = "kafka.vendor.six.moves"
+    if name not in sys.modules:
+        module = ModuleType(name)
+        setattr(module, "range", range)
+        setattr(module, "__path__", [])
+        sys.modules[name] = module
+
+
+_ensure_kafka_vendor_six_moves()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+
+    try:
+        await start_producer(KAFKA_BOOTSTRAP_SERVERS)
+        await start_reply_consumer(KAFKA_BOOTSTRAP_SERVERS)
+    except Exception as e:
+        logging.warning(f"Kafka no disponible, registro funcionará solo con DB local: {e}")
+
     yield
+
+    await stop_producer()
+    await stop_reply_consumer()
     await Tortoise.close_connections()
 
 

@@ -1,0 +1,27 @@
+info:
+  name: create user
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://0.0.0.0:8000/auth/register
+  body:
+    type: json
+    data: |-
+      {
+        "email": "miguelegion@gmail.com",
+        "password": "chepper",
+        "first_name": "Miguel",
+        "last_name": "Moreno",
+        "user_type": "traveler",
+        "phone": "+573001234567",
+        "country_id": null
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

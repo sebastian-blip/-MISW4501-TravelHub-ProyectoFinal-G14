@@ -7,7 +7,7 @@ TOPIC_REQUESTS = "user-validation-requests"
 TOPIC_RESULTS  = "user-validation-results"
 
 # Usuarios "registrados" hardcodeados para la prueba
-KNOWN_USERS = {"miguelegion@gmail.com"}
+KNOWN_USERS = {"miguelegion1@gmail.com"}
 
 # Historial en memoria
 results: list[dict] = []

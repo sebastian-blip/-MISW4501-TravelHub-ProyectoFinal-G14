@@ -31,18 +31,13 @@ jobs:
         id: changed-services
         run: |
           # Detecta el ref de comparación según el evento
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch origin ${{ github.base_ref }}
-            diff_ref="origin/${{ github.base_ref }}"
-          else
-            diff_ref="${{ github.event.before }}"
-          fi
+          diff_ref="${{ github.event.before }}"
 
           # Si el ref no existe (ej: primer push), no falla el job
           git rev-parse --verify "$diff_ref" >/dev/null 2>&1 || { echo "No valid diff ref, exiting gracefully."; echo "services_changed=" >> $GITHUB_OUTPUT; exit 0; }
 
-          # Busca carpetas cambiadas bajo 'services/', pero si no hay cambios, sigue sin error
-          dirs=$(git diff --name-only "$diff_ref" | grep '^services/' || true | cut -d/ -f2 | sort -u | xargs)
+          # SOLO carpetas de servicios, NO archivos
+          dirs=$(git diff --name-only "$diff_ref" | grep '^services/' | awk -F/ '{print $2}' | sort -u | xargs)
           echo "services_changed=$dirs" >> $GITHUB_OUTPUT
 
       - name: Build and Push changed service images

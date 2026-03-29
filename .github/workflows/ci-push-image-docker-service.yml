@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build-and-push:
@@ -14,7 +11,6 @@ jobs:
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
     steps:
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -31,11 +27,10 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Detect changed service directories in 'services/'
       - name: Get changed services
         id: changed-services
         run: |
-          # Solo compara con el commit de referencia en main para PR, o el commit previo si es push
+          # Detecta el ref de comparación según el evento
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git fetch origin ${{ github.base_ref }}
             diff_ref="origin/${{ github.base_ref }}"
@@ -43,10 +38,12 @@ jobs:
             diff_ref="${{ github.event.before }}"
           fi
 
-          # Busca carpetas cambiadas bajo 'services/'
-          dirs=$(git diff --name-only $diff_ref | grep '^services/' | cut -d/ -f2 | sort -u)
+          # Si el ref no existe (ej: primer push), no falla el job
+          git rev-parse --verify "$diff_ref" >/dev/null 2>&1 || { echo "No valid diff ref, exiting gracefully."; echo "services_changed=" >> $GITHUB_OUTPUT; exit 0; }
+
+          # Busca carpetas cambiadas bajo 'services/', pero si no hay cambios, sigue sin error
+          dirs=$(git diff --name-only "$diff_ref" | grep '^services/' || true | cut -d/ -f2 | sort -u | xargs)
           echo "services_changed=$dirs" >> $GITHUB_OUTPUT
-        shell: bash
 
       - name: Build and Push changed service images
         if: steps.changed-services.outputs.services_changed != ''

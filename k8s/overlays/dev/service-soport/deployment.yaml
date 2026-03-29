@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: service-soport
-          image: REPLACE_ME_ECR_REPO/service-soport:dev
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

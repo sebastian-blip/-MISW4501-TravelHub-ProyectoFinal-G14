@@ -1,0 +1,66 @@
+name: Build and Push Changed Service Images
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Detect changed service directories in 'services/'
+      - name: Get changed services
+        id: changed-services
+        run: |
+          # Solo compara con el commit de referencia en main para PR, o el commit previo si es push
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin ${{ github.base_ref }}
+            diff_ref="origin/${{ github.base_ref }}"
+          else
+            diff_ref="${{ github.event.before }}"
+          fi
+
+          # Busca carpetas cambiadas bajo 'services/'
+          dirs=$(git diff --name-only $diff_ref | grep '^services/' | cut -d/ -f2 | sort -u)
+          echo "services_changed=$dirs" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Build and Push changed service images
+        if: steps.changed-services.outputs.services_changed != ''
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          for service in ${{ steps.changed-services.outputs.services_changed }}; do
+            IMAGE="$ECR_REGISTRY/$service:${{ github.sha }}"
+            echo "Building image for $service => $IMAGE"
+            docker build -t $IMAGE ./services/$service
+            docker push $IMAGE
+          done
+
+      - name: Summary message
+        run: |
+          if [ "${{ steps.changed-services.outputs.services_changed }}" = "" ]; then
+            echo "No service changes detected: nothing to build."
+          fi

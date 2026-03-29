@@ -21,3 +21,4 @@ def readyz():
     # return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"status": "not_ready"})
     bd = os.getenv("POSTGRES_HOST")
     return {"status": bd}
+

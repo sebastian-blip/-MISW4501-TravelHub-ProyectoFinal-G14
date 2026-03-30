@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: maps
+  labels:
+    app.kubernetes.io/name: maps
+spec:
+  selector:
+    app.kubernetes.io/name: maps
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http

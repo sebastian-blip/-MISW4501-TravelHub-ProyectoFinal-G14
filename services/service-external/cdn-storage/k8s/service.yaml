@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cdn-storage
+  labels:
+    app.kubernetes.io/name: cdn-storage
+spec:
+  selector:
+    app.kubernetes.io/name: cdn-storage
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http

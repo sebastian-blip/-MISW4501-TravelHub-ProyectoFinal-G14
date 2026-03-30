@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-external
+  labels:
+    app.kubernetes.io/name: service-external
+    app.kubernetes.io/part-of: travelhub
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: service-external
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

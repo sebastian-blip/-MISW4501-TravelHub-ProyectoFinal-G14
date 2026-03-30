@@ -5,8 +5,8 @@ Repositorio del proyecto final **TravelHub**: pruebas de concepto (PoC) de arqui
 ## Microservicios, Kubernetes y GitOps
 
 - **Guía de desarrollo:** [docs/GUIA_DESARROLLO_MONOREPO.md](docs/GUIA_DESARROLLO_MONOREPO.md) (estructura `services/` y `k8s/`, CI, Argo CD, convenciones).
-- **Microservicios:** en `services/<nombre>/` (p. ej. `service-core`). Los adapters de integraciones externas van en `services/service-external/` (`payment`, `notification`, `pms`, `maps`, `cdn-storage`, `currency`). La librería hexagonal compartida (puertos, contratos, adaptadores) vive en **[libs/service_external/](libs/service_external/README.md)**.
-- **Manifiestos:** cada servicio tiene su propio `k8s/` dentro de su directorio (p. ej. `services/service-external/payment/k8s/`).
+- **Microservicios:** en `services/<nombre>/` (p. ej. `service-core`). Las integraciones externas están consolidadas en **un solo** servicio HTTP `services/service-external/` con rutas por dominio (`/pms`, `/payment`, `/currency`, `/cdn-storage`, `/maps`, `/notification`). La librería hexagonal compartida vive en **[libs/service_external/](libs/service_external/README.md)**.
+- **Manifiestos:** `services/service-external/k8s/` (un Deployment/Service para todo el borde externo).
 
 ## Estructura del repositorio
 

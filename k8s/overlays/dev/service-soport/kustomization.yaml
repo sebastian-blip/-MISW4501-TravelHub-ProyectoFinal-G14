@@ -13,7 +13,7 @@ resources:
 # Cuando tengas AWS/ECR, remplaza el name/newName por tu repo real:
 #   <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPO_PREFIX>/service-soport
 # El workflow luego hará "bump" del tag automáticamente.
-images:
-  - name: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
-    newName: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
-    newTag: "dev"
+# images:
+ # - name: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
+ #   newName: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
+  #  newTag: "dev"

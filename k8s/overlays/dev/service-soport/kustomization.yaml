@@ -4,10 +4,11 @@ kind: Kustomization
 namespace: apps
 
 resources:
+  - namespace.yaml
+  - external-secret.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
-  - external-secret.yaml
 
 # IMPORTANTE:
 # Cuando tengas AWS/ECR, remplaza el name/newName por tu repo real:

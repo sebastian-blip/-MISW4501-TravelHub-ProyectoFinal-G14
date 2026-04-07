@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from types import ModuleType
 
 from fastapi import FastAPI
-from tortoise import Tortoise
 
 from infrastructure.database import init_db
 from infrastructure.messaging.kafka.producer import start_producer, stop_producer
@@ -15,6 +14,7 @@ from infrastructure.messaging.kafka.reply_consumer import start_reply_consumer, 
 from routes.health_router import router as health_router
 from routes.auth_router import router as auth_router
 from routes.user_router import router as user_router
+from routes.accommodation_router import router as accommodation_router
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 
@@ -51,7 +51,6 @@ async def lifespan(app: FastAPI):
 
     await stop_producer()
     await stop_reply_consumer()
-    await Tortoise.close_connections()
 
 
 app = FastAPI(
@@ -63,6 +62,7 @@ app = FastAPI(
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(accommodation_router)
 
 if __name__ == "__main__":
     import uvicorn

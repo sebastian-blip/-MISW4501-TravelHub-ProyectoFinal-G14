@@ -1,24 +1,25 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from typing import Optional
+from decimal import Decimal
+import datetime
+import uuid
 
 
-class RoomType(Model):
-    id = fields.UUIDField(pk=True)
-    hotel_id = fields.UUIDField()
-    name = fields.CharField(max_length=100)
-    description = fields.TextField(null=True)
-    base_price = fields.DecimalField(max_digits=10, decimal_places=2)
-    max_capacity = fields.IntField(default=2)
-    bed_type = fields.CharField(max_length=50, null=True)
-    size_sqm = fields.DecimalField(max_digits=5, decimal_places=1, null=True)
-    total_units = fields.IntField(default=1)
-    active = fields.BooleanField(default=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(auto_now=True)
+class RoomType(SQLModel, table=True):
+    __tablename__ = "room_types"
 
-    class Meta:
-        table = "room_types"
-        app = "inventory_service"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    hotel_id: uuid.UUID
+    name: str = Field(max_length=100)
+    description: Optional[str] = None
+    base_price: Decimal = Field(max_digits=10, decimal_places=2)
+    max_capacity: int = Field(default=2)
+    bed_type: Optional[str] = Field(default=None, max_length=50)
+    size_sqm: Optional[Decimal] = Field(default=None, max_digits=5, decimal_places=1)
+    total_units: int = Field(default=1)
+    active: bool = Field(default=True)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return self.name

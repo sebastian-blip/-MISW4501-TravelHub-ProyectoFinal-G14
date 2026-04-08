@@ -15,8 +15,10 @@ from routes.health_router import router as health_router
 from routes.auth_router import router as auth_router
 from routes.user_router import router as user_router
 from routes.accommodation_router import router as accommodation_router
+from routes.state_machine_router import router as state_machine_router
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "false").lower() == "true"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,16 +43,20 @@ _ensure_kafka_vendor_six_moves()
 async def lifespan(app: FastAPI):
     await init_db()
 
-    try:
-        await start_producer(KAFKA_BOOTSTRAP_SERVERS)
-        await start_reply_consumer(KAFKA_BOOTSTRAP_SERVERS)
-    except Exception as e:
-        logging.warning(f"Kafka no disponible, registro funcionará solo con DB local: {e}")
+    if KAFKA_ENABLED:
+        try:
+            await start_producer(KAFKA_BOOTSTRAP_SERVERS)
+            await start_reply_consumer(KAFKA_BOOTSTRAP_SERVERS)
+        except Exception as e:
+            logging.warning(f"Kafka no disponible, registro funcionará solo con DB local: {e}")
+    else:
+        logging.info("Kafka deshabilitado (KAFKA_ENABLED=false)")
 
     yield
 
-    await stop_producer()
-    await stop_reply_consumer()
+    if KAFKA_ENABLED:
+        await stop_producer()
+        await stop_reply_consumer()
 
 
 app = FastAPI(
@@ -63,6 +69,7 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(accommodation_router)
+app.include_router(state_machine_router)
 
 if __name__ == "__main__":
     import uvicorn

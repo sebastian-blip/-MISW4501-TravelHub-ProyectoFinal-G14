@@ -24,6 +24,7 @@ async def init_db():
         import domain.models.hotel
         import domain.models.room_type
         import domain.models.inventory_calendar
+        import domain.models.task_order
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

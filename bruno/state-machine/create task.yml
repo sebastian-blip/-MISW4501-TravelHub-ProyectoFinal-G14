@@ -1,0 +1,22 @@
+info:
+  name: create task
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://0.0.0.0:8000/tasks
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Tarea con saltos flexibles",
+        "description": "Demo de máquina de estados que permite saltar entre pasos"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

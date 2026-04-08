@@ -13,9 +13,9 @@ class TaskOrder(SQLModel, table=True):
     )
     title: str = Field(index=True)
     description: Optional[str] = None
-    # Estados: validate, create, cancelation
-    status: str = Field(default="validate")
-    # Historial de estados en formato JSON string: ["validate", "create"]
-    history: Optional[str] = Field(default='["validate"]')
+    # Estado numérico: 1=step_one, 2=step_two, 3=step_three, 4=step_four
+    status: int = Field(default=1)
+    # Historial de estados en formato JSON string: [1, 2, 3]
+    history: Optional[str] = Field(default="[1]")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None

@@ -20,12 +20,8 @@ async_session_maker = async_sessionmaker(engine, expire_on_commit=False, class_=
 async def init_db():
     async with engine.begin() as conn:
         # Import models so SQLModel knows them
-        import domain.models.user
-        import domain.models.hotel
-        import domain.models.room_type
-        import domain.models.inventory_calendar
-        import domain.models.task_order
-        import domain.models.reservation
+        import app.models.models.task_order
+        import app.models.models.user
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

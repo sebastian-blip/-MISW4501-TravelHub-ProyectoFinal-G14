@@ -1,11 +1,11 @@
 info:
-  name: state machine info
+  name: list all reservations
   type: http
-  seq: 9
+  seq: 2
 
 http:
   method: GET
-  url: http://0.0.0.0:8000/tasks/meta/state-machine-info
+  url: http://0.0.0.0:8000/reservations?limit=10&offset=0
   auth: inherit
 
 settings:

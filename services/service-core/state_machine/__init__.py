@@ -1,3 +1,3 @@
-from .task_state_machine import TaskStateMachine, ALL_STATES, STEP_NAMES
+from .task_state_machine import TaskStateMachine, Meta, get_state_machine
 
-__all__ = ["TaskStateMachine", "ALL_STATES", "STEP_NAMES"]
+__all__ = ["TaskStateMachine", "Meta", "get_state_machine"]

@@ -1,4 +1,4 @@
--- SQL para crear la tabla de tareas con pasos numéricos (1-4)
+-- SQL para crear la tabla de tareas con estados nombrados (validate, create, cancelation)
 
 -- Eliminar tabla si existe
 DROP TABLE IF EXISTS task_orders;
@@ -7,8 +7,8 @@ CREATE TABLE task_orders (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    status INTEGER NOT NULL DEFAULT 1,  -- 1=step_one, 2=step_two, 3=step_three, 4=step_four
-    history TEXT DEFAULT '[1]',         -- JSON array de pasos: [1, 2, 3]
+    status VARCHAR(50) NOT NULL DEFAULT 'validate',  -- validate, create, cancelation
+    history TEXT DEFAULT '["validate"]',              -- JSON array de estados
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP
 );

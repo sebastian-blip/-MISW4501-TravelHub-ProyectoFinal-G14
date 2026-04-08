@@ -1,11 +1,11 @@
 info:
-  name: state machine info
+  name: get reservation by code
   type: http
-  seq: 9
+  seq: 4
 
 http:
   method: GET
-  url: http://0.0.0.0:8000/tasks/meta/state-machine-info
+  url: http://0.0.0.0:8000/reservations/code/REEMPLAZAR-CODIGO
   auth: inherit
 
 settings:

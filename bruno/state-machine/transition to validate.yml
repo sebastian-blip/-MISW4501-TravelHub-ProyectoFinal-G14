@@ -1,16 +1,16 @@
 info:
-  name: jump to step 3
+  name: transition to validate
   type: http
-  seq: 5
+  seq: 4
 
 http:
   method: POST
-  url: http://0.0.0.0:8000/tasks/1/jump
+  url: http://0.0.0.0:8000/tasks/1/transition
   body:
     type: json
     data: |-
       {
-        "target_step": 3
+        "target_state": "create"
       }
   auth: inherit
 

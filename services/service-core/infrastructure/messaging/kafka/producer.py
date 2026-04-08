@@ -4,6 +4,7 @@ from aiokafka import AIOKafkaProducer
 
 TOPIC_REQUESTS = "user-validation-requests"
 TOPIC_STEP_EVENTS = "step-change-events"
+TOPIC_RESERVATION_VALIDATE = "reservation-validate-requests"
 
 _producer: AIOKafkaProducer | None = None
 
@@ -46,3 +47,32 @@ async def publish_step_change(task_id: int, previous_step: int, new_step: int, h
     
     await _producer.send_and_wait(TOPIC_STEP_EVENTS, payload)
     logging.info(f"[service-core Producer] evento de paso enviado → task_id={task_id}, step={new_step}")
+
+
+async def publish_reservation_validate(
+    user_id: str,
+    hotel_id: str,
+    room_type_id: str,
+    check_in: str,
+    check_out: str,
+    correlation_id: str
+):
+    """
+    Publica evento para validar si una reserva existe.
+    service-test debe responder con exists: true/false.
+    """
+    if _producer is None:
+        raise RuntimeError("Kafka producer no inicializado")
+    
+    payload = json.dumps({
+        "event": "reservation_validate_request",
+        "user_id": user_id,
+        "hotel_id": hotel_id,
+        "room_type_id": room_type_id,
+        "check_in": check_in,
+        "check_out": check_out,
+        "correlation_id": correlation_id
+    }).encode("utf-8")
+    
+    await _producer.send_and_wait(TOPIC_RESERVATION_VALIDATE, payload)
+    logging.info(f"[service-core Producer] validación reserva enviada → correlation_id={correlation_id}")

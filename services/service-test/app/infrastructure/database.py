@@ -22,6 +22,7 @@ async def init_db():
         # Import models so SQLModel knows them
         import app.models.models.task_order
         import app.models.models.user
+        import app.models.models.reservation
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

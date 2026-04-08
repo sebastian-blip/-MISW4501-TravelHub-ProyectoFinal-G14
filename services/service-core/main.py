@@ -19,7 +19,7 @@ from routes.reservation_router import router as reservation_router
 from routes.reservation_state_machine_router import router as reservation_flow_router
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "false").lower() == "true"
+KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true")
 
 logging.basicConfig(
     level=logging.INFO,

@@ -31,12 +31,20 @@ class SimpleReservationFlow:
     # ========== PASO 1: VALIDATE ==========
     async def step_validate(self) -> Dict[str, Any]:
         """
-        Paso 1: Busca si ya existe una reserva.
-        Retorna: {"proceed": True/False, "exists": True/False, ...}
+        Paso 1: Pide a service-test que valide/simule si existe reserva.
+        Flujo:
+        1. Envía evento a service-test vía Kafka
+        2. Espera respuesta (exists: true/false)
+        3. Si true: espera a que service-test cree en BD, luego consulta
+        4. Retorna resultado final
         """
+        import asyncio
+        import uuid
         from sqlalchemy import select, and_
         from infrastructure.database import async_session_maker
         from domain.models.reservation import Reservation
+        from infrastructure.messaging.kafka.producer import publish_reservation_validate
+        from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
         
         user_id = self.context.get("user_id")
         hotel_id = self.context.get("hotel_id")
@@ -53,8 +61,41 @@ class SimpleReservationFlow:
                            if not self.context.get(k)]
             }
         
-        print(f"[Flow] Paso 1 - Validando: user={user_id}, hotel={hotel_id}")
+        print(f"[Flow] Paso 1 - Solicitando validación a service-test: user={user_id}")
         
+
+
+
+        correlation_id = str(uuid.uuid4())
+        try:
+            await publish_reservation_validate(
+                user_id=user_id,
+                hotel_id=hotel_id,
+                room_type_id=room_type_id,
+                check_in=str(check_in),
+                check_out=str(check_out),
+                correlation_id=correlation_id
+            )
+
+            # 2. Esperar respuesta de service-test (timeout 5 segundos)
+            print(f"[Flow] Esperando respuesta de service-test (correlation_id={correlation_id[:8]}...)")
+            reply = await wait_for_reply(correlation_id, timeout=5.0)
+
+            exists = reply.get("exists", False)
+            from_kafka = True
+            print(f"[Flow] service-test respondió: exists={exists}")
+
+            # 3. Si service-test dice que existe, esperar un momento a que cree en BD
+            if exists:
+                print(f"[Flow] Esperando 1 segundo a que service-test cree el registro...")
+                await asyncio.sleep(1.0)
+
+        except Exception as e:
+            print(f"[Flow] Error en comunicación con service-test: {e}")
+            # Si falla Kafka, continuamos con validación local (fallback)
+            exists = False
+
+        # 4. Consultar BD (local o compartida con service-test)
         async with async_session_maker() as session:
             stmt = select(Reservation).where(
                 and_(
@@ -67,13 +108,15 @@ class SimpleReservationFlow:
                 )
             )
             result = await session.execute(stmt)
-            existing = result.scalar_one_or_none()
+            # Puede haber múltiples, tomamos el primero
+            existing = result.scalars().first()
             
             if existing:
                 return {
                     "success": True,
                     "proceed": False,  # No continuar, ya existe
                     "exists": True,
+                    "from_kafka": from_kafka,  # Indica si vino de service-test
                     "confirmation_code": existing.confirmation_code,
                     "message": f"Ya existe reserva: {existing.confirmation_code}",
                     "reservation": {
@@ -83,11 +126,12 @@ class SimpleReservationFlow:
                     }
                 }
         
-        # No existe, podemos continuar
+        # No existe en BD, podemos continuar
         return {
             "success": True,
             "proceed": True,  # Continuar al siguiente paso
             "exists": False,
+            "from_kafka": from_kafka,
             "message": "No existe reserva. OK para crear."
         }
     

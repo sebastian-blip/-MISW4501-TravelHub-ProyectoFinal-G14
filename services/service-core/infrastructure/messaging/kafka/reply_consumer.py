@@ -4,6 +4,7 @@ import logging
 from aiokafka import AIOKafkaConsumer
 
 TOPIC_RESULTS = "user-validation-results"
+TOPIC_RESERVATION_RESULTS = "reservation-validate-results"
 
 # Futures pendientes por correlation_id — el handler espera aquí
 _pending: dict[str, asyncio.Future] = {}
@@ -16,6 +17,7 @@ async def start_reply_consumer(bootstrap_servers: str):
     global _consumer, _task
     _consumer = AIOKafkaConsumer(
         TOPIC_RESULTS,
+        TOPIC_RESERVATION_RESULTS,
         bootstrap_servers=bootstrap_servers,
         group_id="service-core-reply-group",
         auto_offset_reset="latest",
@@ -23,7 +25,7 @@ async def start_reply_consumer(bootstrap_servers: str):
     )
     await _consumer.start()
     _task = asyncio.create_task(_consume())
-    logging.info(f"[service-core ReplyConsumer] escuchando topic={TOPIC_RESULTS}")
+    logging.info(f"[service-core ReplyConsumer] escuchando topics={TOPIC_RESULTS}, {TOPIC_RESERVATION_RESULTS}")
 
 
 async def stop_reply_consumer():
@@ -59,6 +61,6 @@ async def _consume():
             future = _pending.get(correlation_id)
             if future and not future.done():
                 future.set_result(payload)
-                logging.info(f"[service-core ReplyConsumer] respuesta recibida → correlation_id={correlation_id}")
+                logging.info(f"[service-core ReplyConsumer] respuesta recibida → correlation_id={correlation_id}, topic={msg.topic}")
     except asyncio.CancelledError:
         pass

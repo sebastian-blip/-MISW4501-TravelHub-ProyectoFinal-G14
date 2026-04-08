@@ -15,7 +15,6 @@ from routes.health_router import router as health_router
 from routes.auth_router import router as auth_router
 from routes.user_router import router as user_router
 from routes.accommodation_router import router as accommodation_router
-from routes.state_machine_router import router as state_machine_router
 from routes.reservation_router import router as reservation_router
 from routes.reservation_state_machine_router import router as reservation_flow_router
 
@@ -71,7 +70,6 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(accommodation_router)
-app.include_router(state_machine_router)
 app.include_router(reservation_router)
 app.include_router(reservation_flow_router)
 

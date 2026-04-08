@@ -53,6 +53,7 @@ class TaskStateMachine:
     
     @property
     def history(self) -> List[int]:
+
         """Retorna el historial de pasos visitados."""
         return self._history.copy()
     

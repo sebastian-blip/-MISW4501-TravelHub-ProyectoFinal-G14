@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 import logging
 from contextlib import asynccontextmanager
@@ -5,11 +8,13 @@ from types import ModuleType
 
 from fastapi import FastAPI
 
+from app.infrastructure.database import init_db
 from app.kafka.producer import start_producer, stop_producer
 from app.kafka.consumer import start_consumer, stop_consumer
 from app.routes.check_router import router as check_router
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "false").lower() == "true"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,12 +37,22 @@ _ensure_kafka_vendor_six_moves()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logging.info(f"Conectando a Kafka: {KAFKA_BOOTSTRAP_SERVERS}")
-    await start_producer(KAFKA_BOOTSTRAP_SERVERS)
-    await start_consumer(KAFKA_BOOTSTRAP_SERVERS)
+    # Inicializar base de datos
+    await init_db()
+    
+    # Inicializar Kafka si está habilitado
+    if KAFKA_ENABLED:
+        logging.info(f"Conectando a Kafka: {KAFKA_BOOTSTRAP_SERVERS}")
+        await start_producer(KAFKA_BOOTSTRAP_SERVERS)
+        await start_consumer(KAFKA_BOOTSTRAP_SERVERS)
+    else:
+        logging.info("Kafka deshabilitado (KAFKA_ENABLED=false)")
+    
     yield
-    await stop_producer()
-    await stop_consumer()
+    
+    if KAFKA_ENABLED:
+        await stop_producer()
+        await stop_consumer()
 
 
 app = FastAPI(

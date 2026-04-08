@@ -11,6 +11,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from pydantic import BaseModel
 
 from infrastructure.database import get_session
+from infrastructure.messaging.kafka.producer import publish_step_change
 from domain.models.task_order import TaskOrder
 from state_machine import TaskStateMachine, STEP_NAMES
 
@@ -185,6 +186,13 @@ async def jump_to_step(
     
     session.add(task)
     await session.commit()
+    
+    # Emitir evento Kafka para notificar el cambio de paso
+    try:
+        await publish_step_change(task_id, previous_step, sm.step, sm.history)
+    except Exception as e:
+        # No fallar el request si Kafka no está disponible
+        print(f"[Warning] No se pudo enviar evento Kafka: {e}")
     
     return JumpResponse(
         success=True,

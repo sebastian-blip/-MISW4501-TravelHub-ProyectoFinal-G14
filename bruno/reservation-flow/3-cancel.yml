@@ -1,0 +1,22 @@
+info:
+  name: 3 - cancel (cancelar por código)
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://0.0.0.0:8000/reservation-flow/cancel
+  body:
+    type: json
+    data: |-
+      {
+        "confirmation_code": "RESXXXXXXXX",
+        "reason": "Cambio de planes"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

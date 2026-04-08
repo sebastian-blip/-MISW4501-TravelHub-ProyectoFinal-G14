@@ -1,0 +1,31 @@
+info:
+  name: 2 - create (crear reservación)
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://0.0.0.0:8000/reservation-flow/create
+  body:
+    type: json
+    data: |-
+      {
+        "user_id": "a1000000-0000-0000-0000-000000000001",
+        "hotel_id": "b1000000-0000-0000-0000-000000000001",
+        "room_type_id": "c1000000-0000-0000-0000-000000000202",
+        "check_in": "2026-05-01",
+        "check_out": "2026-05-05",
+        "guests": 2,
+        "base_price": "500.00",
+        "taxes": "50.00",
+        "discounts": "25.00",
+        "total_price": "525.00",
+        "special_requests": "Habitación con vista al mar"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

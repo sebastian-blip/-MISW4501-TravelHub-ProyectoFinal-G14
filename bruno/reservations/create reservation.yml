@@ -10,9 +10,9 @@ http:
     type: json
     data: |-
       {
-        "user_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        "hotel_id": "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
-        "room_type_id": "c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+        "user_id": "a1000000-0000-0000-0000-000000000001",
+        "hotel_id": "b1000000-0000-0000-0000-000000000001",
+        "room_type_id": "c1000000-0000-0000-0000-000000000101",
         "check_in": "2026-05-01",
         "check_out": "2026-05-05",
         "guests": 2,

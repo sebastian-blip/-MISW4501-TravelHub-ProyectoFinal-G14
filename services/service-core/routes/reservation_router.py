@@ -2,12 +2,13 @@
 Router para Reservation Service con CQRS.
 Endpoints para crear y listar reservaciones.
 """
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from decimal import Decimal
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 from mediatr import Mediator
 
 from reservation_service.commands import (
@@ -28,43 +29,50 @@ from reservation_service.queries import (
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
 
+# Modelos Pydantic para requests
+class CreateReservationRequest(BaseModel):
+    user_id: str
+    hotel_id: str
+    room_type_id: str
+    check_in: date
+    check_out: date
+    guests: int = 1
+    base_price: str = "0.00"
+    taxes: str = "0.00"
+    discounts: str = "0.00"
+    total_price: str = "0.00"
+    currency_code: str = "USD"
+    cart_id: Optional[str] = None
+    cancellation_policy: Optional[str] = None
+    special_requests: Optional[str] = None
+
+
+class UpdateStatusRequest(BaseModel):
+    status: str
+
+
 @router.post("", response_model=CreateReservationResponse)
-async def create_reservation(
-    user_id: UUID,
-    hotel_id: UUID,
-    room_type_id: UUID,
-    check_in: date,
-    check_out: date,
-    guests: int = 1,
-    base_price: Decimal = Decimal("0.00"),
-    taxes: Decimal = Decimal("0.00"),
-    discounts: Decimal = Decimal("0.00"),
-    total_price: Decimal = Decimal("0.00"),
-    currency_code: str = "USD",
-    cart_id: Optional[UUID] = None,
-    cancellation_policy: Optional[str] = None,
-    special_requests: Optional[str] = None,
-):
+async def create_reservation(request: CreateReservationRequest):
     """
     Crea una nueva reservación.
     """
     try:
         mediator = Mediator()
         command = CreateReservationCommand(
-            user_id=user_id,
-            hotel_id=hotel_id,
-            room_type_id=room_type_id,
-            check_in=check_in,
-            check_out=check_out,
-            guests=guests,
-            base_price=base_price,
-            taxes=taxes,
-            discounts=discounts,
-            total_price=total_price,
-            currency_code=currency_code,
-            cart_id=cart_id,
-            cancellation_policy=cancellation_policy,
-            special_requests=special_requests,
+            user_id=UUID(request.user_id),
+            hotel_id=UUID(request.hotel_id),
+            room_type_id=UUID(request.room_type_id),
+            check_in=request.check_in,
+            check_out=request.check_out,
+            guests=request.guests,
+            base_price=Decimal(request.base_price),
+            taxes=Decimal(request.taxes),
+            discounts=Decimal(request.discounts),
+            total_price=Decimal(request.total_price),
+            currency_code=request.currency_code,
+            cart_id=UUID(request.cart_id) if request.cart_id else None,
+            cancellation_policy=request.cancellation_policy,
+            special_requests=request.special_requests,
         )
         result = await mediator.send_async(command)
         return result
@@ -75,13 +83,13 @@ async def create_reservation(
 
 
 @router.get("/{reservation_id}", response_model=ReservationResponse)
-async def get_reservation_by_id(reservation_id: UUID):
+async def get_reservation_by_id(reservation_id: str):
     """
     Obtiene una reservación por su ID.
     """
     try:
         mediator = Mediator()
-        query = GetReservationByIdQuery(reservation_id=reservation_id)
+        query = GetReservationByIdQuery(reservation_id=UUID(reservation_id))
         result = await mediator.send_async(query)
         return result
     except ValueError as e:
@@ -108,7 +116,7 @@ async def get_reservation_by_code(confirmation_code: str):
 
 @router.get("/user/{user_id}", response_model=ReservationListResponse)
 async def list_reservations_by_user(
-    user_id: UUID,
+    user_id: str,
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
@@ -117,7 +125,7 @@ async def list_reservations_by_user(
     """
     try:
         mediator = Mediator()
-        query = ListReservationsByUserQuery(user_id=user_id, limit=limit, offset=offset)
+        query = ListReservationsByUserQuery(user_id=UUID(user_id), limit=limit, offset=offset)
         result = await mediator.send_async(query)
         return result
     except Exception as e:
@@ -143,8 +151,8 @@ async def list_all_reservations(
 
 @router.patch("/{reservation_id}/status", response_model=UpdateReservationStatusResponse)
 async def update_reservation_status(
-    reservation_id: UUID,
-    status: str,  # pending, confirmed, cancelled, completed
+    reservation_id: str,
+    request: UpdateStatusRequest,
 ):
     """
     Actualiza el estado de una reservación.
@@ -152,8 +160,8 @@ async def update_reservation_status(
     try:
         mediator = Mediator()
         command = UpdateReservationStatusCommand(
-            reservation_id=reservation_id,
-            status=status.lower(),
+            reservation_id=UUID(reservation_id),
+            status=request.status.lower(),
         )
         result = await mediator.send_async(command)
         return result

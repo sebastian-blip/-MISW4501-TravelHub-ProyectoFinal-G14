@@ -161,7 +161,7 @@ resource "kubernetes_manifest" "argocd_application" {
       project = "demo-project"
       source = {
         repoURL        = "https://github.com/sebastian-blip/-MISW4501-TravelHub-ProyectoFinal-G14.git"
-        targetRevision = "main"
+        targetRevision = "feat/create_terraform"
         path           = "k8s/overlays/dev"
       }
       destination = {
@@ -180,5 +180,52 @@ resource "kubernetes_manifest" "argocd_application" {
   depends_on = [kubernetes_manifest.argocd_project]
 }
 
+resource "aws_security_group" "msk" {
+  name        = "msk-sg"
+  description = "Allow EKS <-> MSK trafico internamente"
+  vpc_id      = module.vpc.vpc_id
 
+  ingress {
+    from_port   = 9092
+    to_port     = 9094
+    protocol    = "tcp"
+    security_groups = [module.eks.node_security_group_id]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 
+resource "aws_msk_cluster" "main" {
+  cluster_name           = "mi-msk-cluster"
+  kafka_version          = "3.5.1"
+  number_of_broker_nodes = 2
+
+  broker_node_group_info {
+    instance_type   = "kafka.m5.large"
+    ebs_volume_size = 100
+    client_subnets  = module.vpc.private_subnets
+    security_groups = [aws_security_group.msk.id]
+  }
+  encryption_info {
+    encryption_in_transit {
+      client_broker = "TLS"
+      in_cluster    = true
+    }
+  }
+}
+
+# Crea el Secret
+resource "aws_secretsmanager_secret" "msk_bootstrap" {
+  name = "msk-bootstrap-servers"
+}
+
+resource "aws_secretsmanager_secret_version" "msk_bootstrap" {
+  secret_id     = aws_secretsmanager_secret.msk_bootstrap.id
+  secret_string = jsonencode({
+    BOOTSTRAP_SERVERS = aws_msk_cluster.main.bootstrap_brokers_tls
+  })
+}

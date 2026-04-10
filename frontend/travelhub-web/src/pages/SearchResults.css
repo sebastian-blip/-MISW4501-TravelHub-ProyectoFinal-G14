@@ -1,0 +1,101 @@
+/* Shell: misma columna flexible que Home; NavBar arriba + contenido */
+.search-results-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  background: var(--page-bg);
+}
+
+/* Evita doble línea entre NavBar y bloque blanco; contenido por debajo del sticky */
+.search-results-page .page-container {
+  flex: 1;
+  border-top: none;
+  position: relative;
+  z-index: 0;
+}
+
+.search-results-page .page-container__inner {
+  padding-top: calc(var(--nav-height) * 0.2 + var(--page-block-y-start));
+}
+
+.results {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-gap-sm);
+  position: relative;
+  z-index: 0;
+}
+
+.results__title {
+  margin: 0;
+  font-family: var(--heading);
+  font-size: var(--type-section);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-h);
+  line-height: var(--leading-tight);
+}
+
+.results__grid {
+  display: grid;
+  grid-template-columns: minmax(14rem, 17.5rem) minmax(0, 1fr);
+  gap: var(--section-gap);
+  align-items: start;
+  min-width: 0;
+}
+
+.results__sidebar {
+  position: sticky;
+  top: calc(var(--nav-height) + 0.75rem);
+  padding: 1.15rem 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.results__sidebar-title {
+  margin: 0 0 0.65rem;
+  font-size: var(--type-body);
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.results__sidebar-placeholder {
+  margin: 0;
+  font-size: var(--type-body-muted);
+  line-height: var(--leading-body);
+  color: var(--text-muted);
+}
+
+.results__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-gap-sm);
+  min-width: 0;
+}
+
+.results__list-item {
+  min-width: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-results-page {
+    background: var(--page-bg);
+  }
+}
+
+@media (max-width: 900px) {
+  .results__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .results__sidebar {
+    position: static;
+  }
+}

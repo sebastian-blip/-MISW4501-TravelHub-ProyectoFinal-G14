@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { IconCalendar, IconMapPin, IconSearch, IconUsers } from "./HeroIcons";
 import "./Hero.css";
 
@@ -11,6 +12,7 @@ const guestOptions = [
 ];
 
 function Hero() {
+  const navigate = useNavigate();
   const [destination, setDestination] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
@@ -27,6 +29,7 @@ function Hero() {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log({ destination, checkIn, checkOut, guests });
+    navigate("/search");
   };
 
   return (

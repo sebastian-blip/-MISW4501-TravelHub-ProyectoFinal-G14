@@ -44,6 +44,8 @@
   --page-block-y: clamp(2.5rem, 6vw, 4.5rem);
   /* Top padding under Hero: tighter than bottom for a compact handoff */
   --page-block-y-start: clamp(1.25rem, 3vw, 2rem);
+  /* Altura aproximada de la barra sticky (padding + fila del menú); ajusta sticky offsets */
+  --nav-height: 4.5rem;
 
   /* Hierarchy: travel-app scale (titles loud, supporting copy soft) */
   --type-hero: clamp(2.35rem, 6.5vw, 4rem);
@@ -56,6 +58,7 @@
   --leading-tight: 1.2;
   --leading-body: 1.65;
   --text-muted: #64748b;
+  --color-text-muted: var(--text-muted);
 
   --sans: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, sans-serif;
   --heading: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, sans-serif;

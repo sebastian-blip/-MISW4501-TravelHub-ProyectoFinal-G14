@@ -1,0 +1,28 @@
+info:
+  name: list hotels
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://0.0.0.0:8000/accommodations/hotels?city={{city}}&min_stars={{min_stars}}&limit={{limit}}&offset={{offset}}
+  auth: bearer
+  bearer:
+    token: "{{token}}"
+
+runtime:
+  variables:
+    - name: city
+      value: ""
+    - name: min_stars
+      value: ""
+    - name: limit
+      value: "50"
+    - name: offset
+      value: "0"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

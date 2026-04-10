@@ -1,0 +1,8 @@
+info:
+  name: local
+  active: true
+
+vars:
+  - name: token
+    value: ""
+    secret: true

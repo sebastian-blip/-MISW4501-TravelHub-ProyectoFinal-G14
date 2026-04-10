@@ -1,0 +1,96 @@
+.destination-card {
+  position: relative;
+  min-height: 240px;
+  border-radius: var(--radius-lg);
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  color: #fff;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid color-mix(in srgb, white 22%, transparent);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.destination-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.destination-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(15, 23, 42, 0.78) 0%,
+    rgba(15, 23, 42, 0.28) 48%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.destination-card__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.destination-card__name {
+  margin: 0 0 0.3rem;
+  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #fff;
+  line-height: var(--leading-tight);
+}
+
+.destination-card__country {
+  margin: 0 0 0.9rem;
+  font-size: var(--type-body-muted);
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.destination-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.destination-card__price {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.destination-card__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.destination-card__star {
+  color: #fde047;
+  font-size: 1rem;
+  line-height: 1;
+}

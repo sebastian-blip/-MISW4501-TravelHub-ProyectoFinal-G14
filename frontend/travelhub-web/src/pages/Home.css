@@ -1,0 +1,16 @@
+/* Page shell: content below Hero reads as one white band (Hero keeps its own purple) */
+.home-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  text-align: left;
+  background: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .home-page {
+    background: var(--bg);
+  }
+}

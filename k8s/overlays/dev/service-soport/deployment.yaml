@@ -14,6 +14,26 @@ spec:
       labels:
         app.kubernetes.io/name: service-soport
     spec:
+      serviceAccountName: service-soport-sa
+
+      volumes:
+        - name: kafka-ca
+          emptyDir: {}
+
+      initContainers:
+        - name: fetch-kafka-ca
+          image: amazon/aws-cli:2.15.57
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              set -euo pipefail;
+              aws s3 cp s3://travelhubg14/kafka/ca-cert.pem;
+              ls -l /certs/ca-cert.pem;
+          volumeMounts:
+            - name: kafka-ca
+              mountPath: /certs
+
       containers:
         - name: service-soport
           image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
@@ -21,25 +41,40 @@ spec:
           ports:
             - name: http
               containerPort: 3000
+
           env:
             - name: POSTGRES_DB
               value: "travelhub"
+            - name: KAFKA_CA_PATH
+              value: "/certs/ca-cert.pem"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "18.217.144.193:9093"
 
           envFrom:
             - secretRef:
                 name: travelhub-postgres
+            - secretRef:
+                name: kafka-credentials # debe tener KAFKA_USERNAME y KAFKA_PASSWORD (o los nombres que uses)
+
+          volumeMounts:
+            - name: kafka-ca
+              mountPath: /certs
+              readOnly: true
+
           readinessProbe:
             httpGet:
               path: /readyz
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
+
           livenessProbe:
             httpGet:
               path: /healthz
               port: http
             initialDelaySeconds: 15
             periodSeconds: 20
+
           resources:
             requests:
               cpu: "100m"

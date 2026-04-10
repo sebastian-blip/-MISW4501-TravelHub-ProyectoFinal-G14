@@ -6,6 +6,7 @@ namespace: apps
 resources:
   - namespace.yaml
   - external-secret.yaml
+  - serviceaccount.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

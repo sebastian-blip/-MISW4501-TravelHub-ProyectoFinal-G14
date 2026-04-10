@@ -1,48 +1,68 @@
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  name    = "${var.cluster_name}-vpc"
-  cidr    = "10.0.0.0/16"
-  azs     = ["${var.region}a", "${var.region}b"]
+  version = "~> 5.0"
+
+  name = "${var.cluster_name}-vpc"
+  cidr = "10.0.0.0/16"
+  azs  = ["${var.region}a", "${var.region}b"]
+
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+
   enable_nat_gateway = true
   single_nat_gateway = true
 }
 
 module "eks" {
-  source          = "terraform-aws-modules/eks/aws"
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
+
   cluster_name    = var.cluster_name
   cluster_version = "1.29"
-  subnet_ids      = module.vpc.private_subnets
-  vpc_id          = module.vpc.vpc_id
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  cluster_endpoint_public_access  = true
+  cluster_endpoint_private_access = true
+
+  enable_cluster_creator_admin_permissions = true
 
   eks_managed_node_groups = {
     default = {
-      desired_size = var.node_desired_size
-      max_size     = var.node_max_size
-      min_size     = var.node_min_size
+      desired_size   = var.node_desired_size
+      max_size       = var.node_max_size
+      min_size       = var.node_min_size
       instance_types = [var.node_instance_type]
       disk_size      = 20
+      ami_type       = "AL2_x86_64"
     }
   }
+
   enable_irsa = true
 }
 
-data "aws_eks_cluster_auth" "cluster" {
-  name = module.eks.cluster_name
-}
 
 provider "kubernetes" {
-  host = module.eks.cluster_endpoint
+  host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  token = data.aws_eks_cluster_auth.cluster.token
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.region]
+  }
 }
 
 provider "helm" {
-  kubernetes {
-    host = module.eks.cluster_endpoint
+  kubernetes = {
+    host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    token = data.aws_eks_cluster_auth.cluster.token
+    exec = {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.region]
+    }
   }
 }
 
@@ -53,11 +73,10 @@ resource "kubernetes_namespace" "argocd" {
 }
 
 resource "helm_release" "argo_cd" {
-  name       = "argo-cd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  namespace  = kubernetes_namespace.argocd.metadata[0].name
-  version    = "5.57.2"
+  name             = "argo-cd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  namespace        = kubernetes_namespace.argocd.metadata[0].name
   create_namespace = false
 
   values = [<<EOF
@@ -80,24 +99,39 @@ data "aws_iam_policy_document" "eso_policy" {
 }
 
 module "eso_irsa" {
-  source                 = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
-  create_role            = true
-  role_name              = "external-secrets-irsa"
-  provider_url           = module.eks.oidc_provider
-  oidc_fully_qualified_subjects = [
-    "system:serviceaccount:external-secrets:external-secrets"
-  ]
-  policy_arns            = [aws_iam_policy.eso_policy.arn]
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.39.0"
+
+  role_name = "external-secrets-irsa"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["external-secrets:external-secrets"]
+    }
+  }
+
+  role_policy_arns = {
+    eso = aws_iam_policy.eso_policy.arn
+  }
+}
+
+resource "kubernetes_namespace_v1" "external_secrets" {
+  metadata {
+    name = "external-secrets"
+  }
 }
 
 resource "kubernetes_service_account" "eso" {
   metadata {
-    name      = "external-secrets"
-    namespace = "external-secrets"
+    name      = "external-secrets-sa"
+    namespace = kubernetes_namespace_v1.external_secrets.metadata[0].name
     annotations = {
       "eks.amazonaws.com/role-arn" = module.eso_irsa.iam_role_arn
     }
   }
+
+  depends_on = [kubernetes_namespace_v1.external_secrets]
 }
 
 resource "helm_release" "external_secrets" {
@@ -107,17 +141,25 @@ resource "helm_release" "external_secrets" {
   namespace        = "external-secrets"
   create_namespace = true
   version          = "0.9.18"
-  depends_on       = [module.eks]
 
-  set {
-    name  = "serviceAccount.create"
-    value = "false"
-  }
+  depends_on = [module.eks, kubernetes_service_account.eso]
 
-  set {
-    name  = "serviceAccount.name"
-    value = kubernetes_service_account.eso.metadata[0].name
-  }
+  wait             = true
+  timeout          = 900
+  atomic           = true
+  cleanup_on_fail  = true
+  dependency_update = true
+
+  set = [
+    {
+      name  = "serviceAccount.create"
+      value = "false"
+    },
+    {
+      name  = "serviceAccount.name"
+      value = kubernetes_service_account.eso.metadata[0].name
+    }
+  ]
 }
 
 resource "aws_iam_policy" "eso_policy" {
@@ -178,54 +220,4 @@ resource "kubernetes_manifest" "argocd_application" {
     }
   }
   depends_on = [kubernetes_manifest.argocd_project]
-}
-
-resource "aws_security_group" "msk" {
-  name        = "msk-sg"
-  description = "Allow EKS <-> MSK trafico internamente"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    from_port   = 9092
-    to_port     = 9094
-    protocol    = "tcp"
-    security_groups = [module.eks.node_security_group_id]
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_msk_cluster" "main" {
-  cluster_name           = "mi-msk-cluster"
-  kafka_version          = "3.5.1"
-  number_of_broker_nodes = 2
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.large"
-    ebs_volume_size = 100
-    client_subnets  = module.vpc.private_subnets
-    security_groups = [aws_security_group.msk.id]
-  }
-  encryption_info {
-    encryption_in_transit {
-      client_broker = "TLS"
-      in_cluster    = true
-    }
-  }
-}
-
-# Crea el Secret
-resource "aws_secretsmanager_secret" "msk_bootstrap" {
-  name = "msk-bootstrap-servers"
-}
-
-resource "aws_secretsmanager_secret_version" "msk_bootstrap" {
-  secret_id     = aws_secretsmanager_secret.msk_bootstrap.id
-  secret_string = jsonencode({
-    BOOTSTRAP_SERVERS = aws_msk_cluster.main.bootstrap_brokers_tls
-  })
 }

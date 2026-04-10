@@ -6,7 +6,9 @@ info:
 http:
   method: GET
   url: http://0.0.0.0:8000/reservation-flow/check/RESXXXXXXXX
-  auth: inherit
+  auth: bearer
+  bearer:
+    token: "{{token}}"
 
 settings:
   encodeUrl: true

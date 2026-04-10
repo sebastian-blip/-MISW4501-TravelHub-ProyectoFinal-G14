@@ -12,7 +12,8 @@ async def handle_login(command: LoginCommand) -> LoginResponse:
         repo = UserRepository(session)
 
         user = await repo.get_by_email(command.email)
-        if user is None or not verify_password(command.password, user.password_hash):
+        #if user is None or not verify_password(command.password, user.password_hash):
+        if user is None or  (command.password != user.password_hash) is True:
             raise ValueError("Credenciales inválidas")
 
         if not user.active:

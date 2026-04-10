@@ -2,14 +2,16 @@
 Router para Reservation Service con CQRS.
 Endpoints para crear y listar reservaciones.
 """
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from uuid import UUID
 from decimal import Decimal
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 from mediatr import Mediator
+
+from user_service.utils.security import get_current_user
 
 from reservation_service.commands import (
     CreateReservationCommand,
@@ -52,9 +54,12 @@ class UpdateStatusRequest(BaseModel):
 
 
 @router.post("", response_model=CreateReservationResponse)
-async def create_reservation(request: CreateReservationRequest):
+async def create_reservation(
+    request: CreateReservationRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
     """
-    Crea una nueva reservación.
+    Crea una nueva reservación. Requiere autenticación JWT.
     """
     try:
         mediator = Mediator()
@@ -83,9 +88,12 @@ async def create_reservation(request: CreateReservationRequest):
 
 
 @router.get("/{reservation_id}", response_model=ReservationResponse)
-async def get_reservation_by_id(reservation_id: str):
+async def get_reservation_by_id(
+    reservation_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
     """
-    Obtiene una reservación por su ID.
+    Obtiene una reservación por su ID. Requiere autenticación JWT.
     """
     try:
         mediator = Mediator()
@@ -99,9 +107,12 @@ async def get_reservation_by_id(reservation_id: str):
 
 
 @router.get("/code/{confirmation_code}", response_model=ReservationResponse)
-async def get_reservation_by_code(confirmation_code: str):
+async def get_reservation_by_code(
+    confirmation_code: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
     """
-    Obtiene una reservación por su código de confirmación.
+    Obtiene una reservación por su código de confirmación. Requiere autenticación JWT.
     """
     try:
         mediator = Mediator()
@@ -119,9 +130,10 @@ async def list_reservations_by_user(
     user_id: str,
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
-    Lista todas las reservaciones de un usuario.
+    Lista todas las reservaciones de un usuario. Requiere autenticación JWT.
     """
     try:
         mediator = Mediator()
@@ -136,9 +148,10 @@ async def list_reservations_by_user(
 async def list_all_reservations(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
-    Lista todas las reservaciones (con paginación).
+    Lista todas las reservaciones (con paginación). Requiere autenticación JWT.
     """
     try:
         mediator = Mediator()
@@ -153,9 +166,10 @@ async def list_all_reservations(
 async def update_reservation_status(
     reservation_id: str,
     request: UpdateStatusRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
-    Actualiza el estado de una reservación.
+    Actualiza el estado de una reservación. Requiere autenticación JWT.
     """
     try:
         mediator = Mediator()

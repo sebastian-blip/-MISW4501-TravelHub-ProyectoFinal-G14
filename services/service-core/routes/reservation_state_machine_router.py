@@ -2,11 +2,13 @@
 Router simple usando flujo explícito de pasos.
 Sin dinamismo, todo es directo y fácil de seguir.
 """
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import date
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+
+from user_service.utils.security import get_current_user
 
 from state_machine.simple_reservation_flow import SimpleReservationFlow
 
@@ -32,9 +34,12 @@ class CancelRequest(BaseModel):
 
 
 @router.post("/create")
-async def create_reservation(request: CreateRequest):
+async def create_reservation(
+    request: CreateRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
     """
-    Flujo: validate → create
+    Flujo: validate → create. Requiere autenticación JWT.
     
     1. Valida si existe reserva duplicada
     2. Si no existe, la crea
@@ -65,9 +70,12 @@ async def create_reservation(request: CreateRequest):
 
 
 @router.post("/cancel")
-async def cancel_reservation(request: CancelRequest):
+async def cancel_reservation(
+    request: CancelRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
     """
-    Cancela una reserva por código.
+    Cancela una reserva por código. Requiere autenticación JWT.
     """
     try:
         flow = SimpleReservationFlow()
@@ -78,8 +86,11 @@ async def cancel_reservation(request: CancelRequest):
 
 
 @router.get("/check/{confirmation_code}")
-async def check_reservation(confirmation_code: str):
-    """Consulta una reserva por código."""
+async def check_reservation(
+    confirmation_code: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """Consulta una reserva por código. Requiere autenticación JWT."""
     from reservation_service.queries import GetReservationByCodeQuery
     from mediatr import Mediator
     

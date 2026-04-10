@@ -12,7 +12,9 @@ http:
       {
         "confirmation_code": "RESXXXXXXXX"
       }
-  auth: inherit
+  auth: bearer
+  bearer:
+    token: "{{token}}"
 
 settings:
   encodeUrl: true

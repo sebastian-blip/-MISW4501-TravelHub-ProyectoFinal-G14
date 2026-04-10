@@ -23,7 +23,9 @@ http:
         "currency_code": "USD",
         "special_requests": "Habitación con vista al mar"
       }
-  auth: inherit
+  auth: bearer
+  bearer:
+    token: "{{token}}"
 
 settings:
   encodeUrl: true

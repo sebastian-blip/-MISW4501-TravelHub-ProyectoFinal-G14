@@ -21,7 +21,9 @@ http:
         "discounts": "25.00",
         "special_requests": "Habitación con vista al mar"
       }
-  auth: inherit
+  auth: bearer
+  bearer:
+    token: "{{token}}"
 
 settings:
   encodeUrl: true

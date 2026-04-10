@@ -6,7 +6,9 @@ info:
 http:
   method: GET
   url: http://0.0.0.0:8000/reservations?limit=10&offset=0
-  auth: inherit
+  auth: bearer
+  bearer:
+    token: "{{token}}"
 
 settings:
   encodeUrl: true

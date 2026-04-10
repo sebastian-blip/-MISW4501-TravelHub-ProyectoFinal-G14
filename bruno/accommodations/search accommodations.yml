@@ -6,7 +6,9 @@ info:
 http:
   method: GET
   url: http://0.0.0.0:8000/accommodations/search?city={{city}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}
-  auth: inherit
+  auth: bearer
+  bearer:
+    token: "{{token}}"
 
 runtime:
   variables:

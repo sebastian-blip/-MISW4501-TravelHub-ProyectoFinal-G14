@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from decimal import Decimal
 from uuid import UUID
 
@@ -15,7 +15,6 @@ from accommodation_service.queries.accommodation_queries import (
 )
 import accommodation_service.queries.search_accommodations_handler  # registra handler
 import accommodation_service.queries.hotel_listing_handler  # registra handlers
-from user_service.utils.security import get_current_user
 
 router = APIRouter(prefix="/accommodations", tags=["Accommodations"])
 
@@ -63,10 +62,9 @@ async def search_accommodations(
     check_out: date = Query(..., description="Fecha de check-out (YYYY-MM-DD)"),
     guests: int = Query(1, ge=1, description="Número de huéspedes"),
     mediator: Mediator = Depends(get_mediator),
-    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
-    Busca hospedajes disponibles por ciudad y fechas. Requiere autenticación JWT.
+    Busca hospedajes disponibles por ciudad y fechas.
 
     Solo retorna propiedades con disponibilidad real para todas las noches del período.
     """
@@ -170,10 +168,9 @@ async def list_hotels(
     limit: int = Query(50, ge=1, le=100, description="Límite de resultados"),
     offset: int = Query(0, ge=0, description="Offset para paginación"),
     mediator: Mediator = Depends(get_mediator),
-    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
-    Lista todos los hoteles con filtros opcionales. Requiere autenticación JWT.
+    Lista todos los hoteles con filtros opcionales.
     
     Permite filtrar por ciudad, país, estrellas y rating.
     """
@@ -215,10 +212,9 @@ async def get_hotel_availability(
     check_out: date = Query(..., description="Fecha de check-out (YYYY-MM-DD)"),
     guests: int = Query(1, ge=1, description="Número de huéspedes"),
     mediator: Mediator = Depends(get_mediator),
-    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
-    Verifica disponibilidad de un hotel específico por fechas. Requiere autenticación JWT.
+    Verifica disponibilidad de un hotel específico por fechas.
     
     Retorna las habitaciones disponibles con precios para el rango de fechas solicitado.
     """
@@ -265,10 +261,9 @@ async def get_hotel_availability(
 async def list_cities(
     country_id: Optional[UUID] = Query(None, description="Filtrar por país (UUID)"),
     mediator: Mediator = Depends(get_mediator),
-    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
-    Lista todas las ciudades que tienen hoteles activos. Requiere autenticación JWT.
+    Lista todas las ciudades que tienen hoteles activos.
     
     Opcionalmente filtra por país.
     """

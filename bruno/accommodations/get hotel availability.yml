@@ -6,9 +6,17 @@ info:
 http:
   method: GET
   url: http://0.0.0.0:8000/accommodations/hotels/{{hotel_id}}/availability?check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}
-  auth: bearer
-  bearer:
-    token: "{{token}}"
+  params:
+    - name: check_in
+      value: "{{check_in}}"
+      type: query
+    - name: check_out
+      value: "{{check_out}}"
+      type: query
+    - name: guests
+      value: "{{guests}}"
+      type: query
+  auth: inherit
 
 runtime:
   variables:

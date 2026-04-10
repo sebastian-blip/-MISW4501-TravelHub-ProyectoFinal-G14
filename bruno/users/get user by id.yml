@@ -6,9 +6,7 @@ info:
 http:
   method: GET
   url: http://0.0.0.0:8000/users/{{user_id}}
-  auth: bearer
-  bearer:
-    token: "{{token}}"
+  auth: inherit
 
 runtime:
   variables:

@@ -6,16 +6,14 @@ info:
 http:
   method: GET
   url: http://0.0.0.0:8000/accommodations/hotels?city={{city}}&min_stars={{min_stars}}&limit={{limit}}&offset={{offset}}
-  auth: bearer
-  bearer:
-    token: "{{token}}"
+  auth: inherit
 
 runtime:
   variables:
     - name: city
-      value: ""
+      value: Bogotá
     - name: min_stars
-      value: ""
+      value: "1"
     - name: limit
       value: "50"
     - name: offset

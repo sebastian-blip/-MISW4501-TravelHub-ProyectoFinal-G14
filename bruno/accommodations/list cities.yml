@@ -6,9 +6,7 @@ info:
 http:
   method: GET
   url: http://0.0.0.0:8000/accommodations/cities
-  auth: bearer
-  bearer:
-    token: "{{token}}"
+  auth: inherit
 
 settings:
   encodeUrl: true

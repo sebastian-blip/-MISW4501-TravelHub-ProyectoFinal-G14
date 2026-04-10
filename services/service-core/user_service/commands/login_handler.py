@@ -20,7 +20,7 @@ async def handle_login(command: LoginCommand) -> LoginResponse:
             raise ValueError("Usuario inactivo")
 
     token = create_access_token({
-        "sub": str(user.id),
+        "user_id": str(user.id),
         "email": user.email,
         "user_type": user.user_type,
     })

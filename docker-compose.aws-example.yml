@@ -1,0 +1,41 @@
+# Ejemplo de docker-compose para despliegue en AWS
+# Ajusta las variables y rutas según tu entorno
+
+services:
+  service-core:
+    build: ./services/service-core
+    ports:
+      - "8000:8000"
+    environment:
+      - KAFKA_LOCAL=false
+      - KAFKA_BOOTSTRAP_SERVERS=18.217.144.193:9093
+      - KAFKA_USERNAME=appclient
+      - KAFKA_PASSWORD=${KAFKA_PASSWORD}
+      - KAFKA_CA_PATH=/app/certs/ca-cert.pem
+      - KAFKA_ENABLED=true
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      # Montar certificados desde el host o desde /service
+      - /service:/app/certs:ro
+      # O si los tienes en otra ruta:
+      # - ./certs:/app/certs:ro
+    restart: unless-stopped
+
+  service-test:
+    build: ./services/service-test
+    ports:
+      - "8001:8001"
+    environment:
+      - KAFKA_LOCAL=false
+      - KAFKA_BOOTSTRAP_SERVERS=18.217.144.193:9093
+      - KAFKA_USERNAME=appclient
+      - KAFKA_PASSWORD=${KAFKA_PASSWORD}
+      - KAFKA_CA_PATH=/app/certs/ca-cert.pem
+      - KAFKA_ENABLED=true
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      # Montar certificados desde el host o desde /service
+      - /service:/app/certs:ro
+      # O si los tienes en otra ruta:
+      # - ./certs:/app/certs:ro
+    restart: unless-stopped

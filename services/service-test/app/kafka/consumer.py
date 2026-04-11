@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import os
+import ssl
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
 TOPIC_REQUESTS = "user-validation-requests"
@@ -16,20 +18,101 @@ _producer: AIOKafkaProducer | None = None
 _task: asyncio.Task | None = None
 
 
-async def start_consumer(bootstrap_servers: str):
-    global _consumer, _producer, _task
+def _resolve_ca_path(ca_path: str) -> str | None:
+    """Resuelve la ruta del certificado CA, buscando alternativas si no existe."""
+    if not ca_path:
+        return None
+    
+    if os.path.isfile(ca_path):
+        return ca_path
+    
+    alternatives = [
+        "/service/ca-cert.pem",
+        "/app/certs/ca-cert.pem",
+        "/certs/ca-cert.pem",
+        "./certs/ca-cert.pem",
+    ]
+    
+    for alt in alternatives:
+        if os.path.isfile(alt):
+            logging.info(f"[Kafka] Usando certificado alternativo: {alt}")
+            return alt
+    
+    if ca_path.startswith("./") or ca_path.startswith("../"):
+        abs_path = os.path.abspath(ca_path)
+        if os.path.isfile(abs_path):
+            return abs_path
+    
+    logging.warning(f"[Kafka] No se encontró certificado CA en: {ca_path}")
+    return None
 
-    _producer = AIOKafkaProducer(bootstrap_servers=bootstrap_servers)
+
+def _create_ssl_context(ca_path: str | None) -> ssl.SSLContext:
+    """Crea un contexto SSL, con o sin verificación de CA."""
+    if ca_path and os.path.isfile(ca_path):
+        try:
+            return ssl.create_default_context(cafile=ca_path)
+        except Exception as e:
+            logging.error(f"[Kafka] Error cargando certificado {ca_path}: {e}")
+    
+    # SSL sin verificación (para pruebas)
+    logging.warning("[Kafka] Usando SSL sin verificación de certificado (inseguro)")
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
+
+
+async def start_consumer(
+    bootstrap_servers: str,
+    use_ssl: bool = False,
+    username: str = "",
+    password: str = "",
+    ca_path: str = ""
+):
+    """Inicia el consumidor de Kafka con soporte para SASL/SSL en AWS."""
+    global _consumer, _producer, _task
+    
+    # Configuración base
+    producer_config = {"bootstrap_servers": bootstrap_servers}
+    consumer_config = {
+        "bootstrap_servers": bootstrap_servers,
+        "group_id": "service-test-group",
+        "auto_offset_reset": "earliest",
+        "enable_auto_commit": True,
+    }
+    
+    # Configuración SASL/SSL para AWS
+    if use_ssl and username and password:
+        sasl_config = {
+            "security_protocol": "SASL_SSL",
+            "sasl_mechanism": "PLAIN",
+            "sasl_plain_username": username,
+            "sasl_plain_password": password,
+        }
+        
+        producer_config.update(sasl_config)
+        consumer_config.update(sasl_config)
+        
+        # Resolver y aplicar certificado SSL
+        resolved_ca_path = _resolve_ca_path(ca_path)
+        ssl_context = _create_ssl_context(resolved_ca_path)
+        producer_config["ssl_context"] = ssl_context
+        consumer_config["ssl_context"] = ssl_context
+        
+        if resolved_ca_path:
+            logging.info(f"[service-test Consumer] Usando SASL/SSL con certificado: {resolved_ca_path}")
+        else:
+            logging.warning(f"[service-test Consumer] Usando SASL/SSL sin verificación de CA")
+    
+    _producer = AIOKafkaProducer(**producer_config)
     await _producer.start()
 
     _consumer = AIOKafkaConsumer(
         TOPIC_REQUESTS,
-        TOPIC_STEP_EVENTS,  # Escuchar eventos de cambio de paso
-        TOPIC_AWS_TEST,     # Escuchar mensajes de prueba AWS
-        bootstrap_servers=bootstrap_servers,
-        group_id="service-test-group",
-        auto_offset_reset="earliest",
-        enable_auto_commit=True,
+        TOPIC_STEP_EVENTS,
+        TOPIC_AWS_TEST,
+        **consumer_config
     )
     await _consumer.start()
     _task = asyncio.create_task(_consume())
@@ -92,7 +175,7 @@ async def _handle_step_event(payload: dict):
             result = await session.execute(select(User))
             users = result.scalars().all()
             user_count = len(users)
-            user_emails = [u.email for u in users[:3]]  # Primeros 3 emails
+            user_emails = [u.email for u in users[:3]]
             
             logging.info(f"[service-test Consumer] Consulta BD: {user_count} usuarios encontrados")
     except Exception as e:
@@ -100,7 +183,6 @@ async def _handle_step_event(payload: dict):
         user_emails = []
         logging.error(f"[service-test Consumer] Error consultando BD: {e}")
     
-    # Preparar resultado
     result = {
         "event_type": "step_changed",
         "task_id": task_id,
@@ -116,7 +198,6 @@ async def _handle_step_event(payload: dict):
     
     results.append(result)
     
-    # Publicar respuesta
     reply = json.dumps(result).encode("utf-8")
     await _producer.send_and_wait(TOPIC_RESULTS, reply)
     
@@ -124,11 +205,10 @@ async def _handle_step_event(payload: dict):
 
 
 async def _handle_user_validation(payload: dict):
-    """Maneja validaciones de usuario (funcionalidad original)."""
+    """Maneja validaciones de usuario."""
     email = payload.get("email", "")
     correlation_id = payload.get("correlation_id", "")
     
-    # Usuarios "registrados" hardcodeados para la prueba
     KNOWN_USERS = {"miguelegion1@gmail.com"}
     found = email in KNOWN_USERS
     
@@ -151,10 +231,7 @@ async def _handle_user_validation(payload: dict):
 
 
 async def _handle_aws_test_message(payload: dict):
-    """
-    Maneja mensajes de prueba de AWS.
-    Recibe mensajes de service-core y responde confirmando recepción.
-    """
+    """Maneja mensajes de prueba de AWS."""
     import socket
     from datetime import datetime
     
@@ -172,7 +249,6 @@ async def _handle_aws_test_message(payload: dict):
     logging.info(f"[service-test Consumer]    Mensaje: '{message}'")
     logging.info(f"[service-test Consumer]    Origen: {source.get('service', 'unknown')} @ {source.get('host', 'unknown')}")
     
-    # Preparar respuesta de confirmación
     result = {
         "event_type": "aws_test_response",
         "correlation_id": correlation_id,
@@ -193,10 +269,8 @@ async def _handle_aws_test_message(payload: dict):
         "message": f"✓ Mensaje recibido en service-test: '{message[:50]}...'" if len(message) > 50 else f"✓ Mensaje recibido en service-test: '{message}'"
     }
     
-    # Guardar en historial
     results.append(result)
     
-    # Enviar respuesta de vuelta a service-core
     reply = json.dumps(result).encode("utf-8")
     await _producer.send_and_wait(TOPIC_RESULTS, reply)
     

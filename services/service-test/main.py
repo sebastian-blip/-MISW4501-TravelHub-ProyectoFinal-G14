@@ -15,8 +15,12 @@ from app.kafka.reservation_consumer import start_reservation_consumer, stop_rese
 from app.routes.check_router import router as check_router
 from app.routes.test_results_router import router as test_results_router
 
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true")
+# Configuración de Kafka
+KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true").lower() == "true"
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
+KAFKA_USERNAME = os.getenv("KAFKA_USERNAME", "")
+KAFKA_PASSWORD = os.getenv("KAFKA_PASSWORD", "")
+KAFKA_CA_PATH = os.getenv("KAFKA_CA_PATH", "/app/certs/ca-cert.pem")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,20 +43,39 @@ _ensure_kafka_vendor_six_moves()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicializar base de datos
     await init_db()
-    
-    # Inicializar Kafka si está habilitado
+
     if KAFKA_ENABLED:
-        logging.info(f"Conectando a Kafka: {KAFKA_BOOTSTRAP_SERVERS}")
-        await start_producer(KAFKA_BOOTSTRAP_SERVERS)
-        await start_consumer(KAFKA_BOOTSTRAP_SERVERS)
-        await start_reservation_consumer(KAFKA_BOOTSTRAP_SERVERS)
+        try:
+            logging.info(f"[Kafka] Conectando a AWS: {KAFKA_BOOTSTRAP_SERVERS}")
+            await start_producer(
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=True,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD,
+                ca_path=KAFKA_CA_PATH
+            )
+            await start_consumer(
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=True,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD,
+                ca_path=KAFKA_CA_PATH
+            )
+            await start_reservation_consumer(
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=True,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD,
+                ca_path=KAFKA_CA_PATH
+            )
+        except Exception as e:
+            logging.warning(f"[Kafka] No disponible: {e}")
     else:
-        logging.info("Kafka deshabilitado (KAFKA_ENABLED=false)")
-    
+        logging.info("[Kafka] Deshabilitado (KAFKA_ENABLED=false)")
+
     yield
-    
+
     if KAFKA_ENABLED:
         await stop_producer()
         await stop_consumer()
@@ -71,9 +94,27 @@ app.include_router(test_results_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "service-test", "kafka": KAFKA_BOOTSTRAP_SERVERS}
+    return {
+        "status": "ok",
+        "service": "service-test",
+        "kafka": {
+            "bootstrap_servers": KAFKA_BOOTSTRAP_SERVERS,
+            "enabled": KAFKA_ENABLED
+        }
+    }
+
+
+@app.get("/config/kafka")
+async def get_kafka_config():
+    """Endpoint para verificar la configuración actual de Kafka."""
+    return {
+        "kafka_enabled": KAFKA_ENABLED,
+        "bootstrap_servers": KAFKA_BOOTSTRAP_SERVERS,
+        "auth_configured": bool(KAFKA_USERNAME and KAFKA_PASSWORD)
+    }
 
 
 if __name__ == "__main__":
     import uvicorn
+    print(f"Starting server... Kafka AWS: {KAFKA_BOOTSTRAP_SERVERS}")
     uvicorn.run(app, host="0.0.0.0", port=8001)

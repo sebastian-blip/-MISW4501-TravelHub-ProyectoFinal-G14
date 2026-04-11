@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import os
+import ssl
 from aiokafka import AIOKafkaConsumer
 
 TOPIC_RESULTS = "user-validation-results"
@@ -13,15 +15,83 @@ _consumer: AIOKafkaConsumer | None = None
 _task: asyncio.Task | None = None
 
 
-async def start_reply_consumer(bootstrap_servers: str):
+def _resolve_ca_path(ca_path: str) -> str | None:
+    """Resuelve la ruta del certificado CA, buscando alternativas si no existe."""
+    if not ca_path:
+        return None
+    
+    if os.path.isfile(ca_path):
+        return ca_path
+    
+    alternatives = [
+        "/service/ca-cert.pem",
+        "/app/certs/ca-cert.pem",
+        "/certs/ca-cert.pem",
+        "./certs/ca-cert.pem",
+    ]
+    
+    for alt in alternatives:
+        if os.path.isfile(alt):
+            logging.info(f"[Kafka] Usando certificado alternativo: {alt}")
+            return alt
+    
+    if ca_path.startswith("./") or ca_path.startswith("../"):
+        abs_path = os.path.abspath(ca_path)
+        if os.path.isfile(abs_path):
+            return abs_path
+    
+    logging.warning(f"[Kafka] No se encontró certificado CA en: {ca_path}")
+    return None
+
+
+async def start_reply_consumer(
+    bootstrap_servers: str,
+    use_ssl: bool = False,
+    username: str = "",
+    password: str = "",
+    ca_path: str = ""
+):
+    """Inicia el consumidor de respuestas con soporte para SASL/SSL en AWS."""
     global _consumer, _task
+    
+    config = {
+        "bootstrap_servers": bootstrap_servers,
+        "group_id": "service-core-reply-group",
+        "auto_offset_reset": "latest",
+        "enable_auto_commit": True,
+    }
+    
+    # Configuración SASL/SSL para AWS
+    if use_ssl and username and password:
+        config["security_protocol"] = "SASL_SSL"
+        config["sasl_mechanism"] = "PLAIN"
+        config["sasl_plain_username"] = username
+        config["sasl_plain_password"] = password
+        
+        resolved_ca_path = _resolve_ca_path(ca_path)
+        
+        if resolved_ca_path and os.path.isfile(resolved_ca_path):
+            try:
+                ssl_context = ssl.create_default_context(cafile=resolved_ca_path)
+                config["ssl_context"] = ssl_context
+                logging.info(f"[service-core ReplyConsumer] Usando SASL/SSL con certificado: {resolved_ca_path}")
+            except Exception as e:
+                logging.error(f"[service-core ReplyConsumer] Error cargando certificado: {e}")
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                config["ssl_context"] = ssl_context
+        else:
+            logging.warning(f"[service-core ReplyConsumer] Certificado no encontrado, usando SSL sin verificación")
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            config["ssl_context"] = ssl_context
+    
     _consumer = AIOKafkaConsumer(
         TOPIC_RESULTS,
         TOPIC_RESERVATION_RESULTS,
-        bootstrap_servers=bootstrap_servers,
-        group_id="service-core-reply-group",
-        auto_offset_reset="latest",
-        enable_auto_commit=True,
+        **config
     )
     await _consumer.start()
     _task = asyncio.create_task(_consume())

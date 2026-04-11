@@ -28,7 +28,7 @@ spec:
           args:
             - >
               set -euo pipefail;
-              aws s3 cp s3://travelhubg14/kafka/ca-cert.pem;
+              aws s3 cp s3://travelhubg14/kafka/ca-cert.pem /certs/ca-cert.pem;
               ls -l /certs/ca-cert.pem;
           volumeMounts:
             - name: kafka-ca

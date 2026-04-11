@@ -6,7 +6,6 @@ import asyncio
 import json
 import logging
 import os
-import ssl
 from uuid import uuid4, UUID
 from datetime import date
 from decimal import Decimal
@@ -20,65 +19,20 @@ from app.models.models.reservation import Reservation
 TOPIC_RESERVATION_VALIDATE = "reservation-validate-requests"
 TOPIC_RESERVATION_RESULTS = "reservation-validate-results"
 
-SIMULATE_EXISTS = True
+SIMULATE_EXISTS = False
 
 _consumer: AIOKafkaConsumer | None = None
 _producer: AIOKafkaProducer | None = None
 _task: asyncio.Task | None = None
 
 
-def _resolve_ca_path(ca_path: str) -> str | None:
-    """Resuelve la ruta del certificado CA, buscando alternativas si no existe."""
-    if not ca_path:
-        return None
-    
-    if os.path.isfile(ca_path):
-        return ca_path
-    
-    alternatives = [
-        "/service/ca-cert.pem",
-        "/app/certs/ca-cert.pem",
-        "/certs/ca-cert.pem",
-        "./certs/ca-cert.pem",
-    ]
-    
-    for alt in alternatives:
-        if os.path.isfile(alt):
-            logging.info(f"[Kafka] Usando certificado alternativo: {alt}")
-            return alt
-    
-    if ca_path.startswith("./") or ca_path.startswith("../"):
-        abs_path = os.path.abspath(ca_path)
-        if os.path.isfile(abs_path):
-            return abs_path
-    
-    logging.warning(f"[Kafka] No se encontró certificado CA en: {ca_path}")
-    return None
-
-
-def _create_ssl_context(ca_path: str | None) -> ssl.SSLContext:
-    """Crea un contexto SSL, con o sin verificación de CA."""
-    if ca_path and os.path.isfile(ca_path):
-        try:
-            return ssl.create_default_context(cafile=ca_path)
-        except Exception as e:
-            logging.error(f"[Kafka] Error cargando certificado {ca_path}: {e}")
-    
-    logging.warning("[Kafka] Usando SSL sin verificación de certificado (inseguro)")
-    context = ssl.create_default_context()
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-    return context
-
-
 async def start_reservation_consumer(
     bootstrap_servers: str,
     use_ssl: bool = False,
     username: str = "",
-    password: str = "",
-    ca_path: str = ""
+    password: str = ""
 ):
-    """Inicia el consumidor de reservas con soporte para SASL/SSL en AWS."""
+    """Inicia el consumidor de reservas con soporte para SASL."""
     global _consumer, _producer, _task
     
     # Configuración base
@@ -90,28 +44,17 @@ async def start_reservation_consumer(
         "enable_auto_commit": True,
     }
     
-    # Configuración SASL/SSL para AWS
+    # Configuración SASL para AWS
     if use_ssl and username and password:
         sasl_config = {
-            "security_protocol": "SASL_SSL",
-            "sasl_mechanism": "PLAIN",
+            "sasl_mechanism": "SCRAM-SHA-256",
+            "security_protocol": "SASL_PLAINTEXT",
             "sasl_plain_username": username,
             "sasl_plain_password": password,
         }
         
         producer_config.update(sasl_config)
         consumer_config.update(sasl_config)
-        
-        # Resolver y aplicar certificado SSL
-        resolved_ca_path = _resolve_ca_path(ca_path)
-        ssl_context = _create_ssl_context(resolved_ca_path)
-        producer_config["ssl_context"] = ssl_context
-        consumer_config["ssl_context"] = ssl_context
-        
-        if resolved_ca_path:
-            logging.info(f"[service-test ReservationConsumer] Usando SASL/SSL con certificado: {resolved_ca_path}")
-        else:
-            logging.warning(f"[service-test ReservationConsumer] Usando SASL/SSL sin verificación de CA")
     
     _producer = AIOKafkaProducer(**producer_config)
     await _producer.start()

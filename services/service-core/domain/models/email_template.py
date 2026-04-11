@@ -1,21 +1,21 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from typing import Optional
+import datetime
+import uuid
 
 
-class EmailTemplate(Model):
-    id = fields.UUIDField(pk=True)
-    name = fields.CharField(max_length=100, unique=True)
-    subject = fields.CharField(max_length=255)
-    body_html = fields.TextField()
-    body_text = fields.TextField(null=True)
-    language = fields.CharField(max_length=5, default="es")
-    active = fields.BooleanField(default=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(auto_now=True)
+class EmailTemplate(SQLModel, table=True):
+    __tablename__ = "email_templates"
 
-    class Meta:
-        table = "email_templates"
-        app = "notification_service"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    name: str = Field(max_length=100, unique=True)
+    subject: str = Field(max_length=255)
+    body_html: str
+    body_text: Optional[str] = Field(default=None)
+    language: str = Field(default="es", max_length=5)
+    active: bool = Field(default=True)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return self.name

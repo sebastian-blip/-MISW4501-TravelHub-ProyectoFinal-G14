@@ -1,19 +1,19 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from typing import Optional
+import uuid
+import datetime
 
 
-class HotelImage(Model):
-    id = fields.UUIDField(pk=True)
-    hotel_id = fields.UUIDField()
-    url = fields.TextField()
-    alt_text = fields.CharField(max_length=255, null=True)
-    sort_order = fields.IntField(default=0)
-    image_type = fields.CharField(max_length=50, default="gallery")
-    created_at = fields.DatetimeField(auto_now_add=True)
+class HotelImage(SQLModel, table=True):
+    __tablename__ = "hotel_images"
 
-    class Meta:
-        table = "hotel_images"
-        app = "hotel_service"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    hotel_id: uuid.UUID
+    url: str
+    alt_text: Optional[str] = Field(default=None, max_length=255)
+    sort_order: int = Field(default=0)
+    image_type: str = Field(default="gallery", max_length=50)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return f"Image {self.id}"

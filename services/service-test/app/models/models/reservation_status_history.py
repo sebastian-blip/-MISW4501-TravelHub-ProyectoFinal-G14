@@ -1,20 +1,20 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from typing import Optional
+import datetime
+import uuid
 
 
-class ReservationStatusHistory(Model):
-    id = fields.UUIDField(pk=True)
-    reservation_id = fields.UUIDField()
-    previous_status = fields.CharField(max_length=50, null=True)
-    new_status = fields.CharField(max_length=50)
-    changed_by = fields.UUIDField(null=True)
-    reason = fields.TextField(null=True)
-    ip_address = fields.CharField(max_length=45, null=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
+class ReservationStatusHistory(SQLModel, table=True):
+    __tablename__ = "reservation_status_history"
 
-    class Meta:
-        table = "reservation_status_history"
-        app = "reservation_service"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    reservation_id: uuid.UUID
+    previous_status: Optional[str] = Field(default=None, max_length=50)
+    new_status: str = Field(max_length=50)
+    changed_by: Optional[uuid.UUID] = Field(default=None)
+    reason: Optional[str] = Field(default=None)
+    ip_address: Optional[str] = Field(default=None, max_length=45)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return f"{self.previous_status} -> {self.new_status}"

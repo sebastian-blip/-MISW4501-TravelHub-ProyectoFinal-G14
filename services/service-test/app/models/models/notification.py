@@ -1,23 +1,23 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from typing import Optional
+import datetime
+import uuid
 
 
-class Notification(Model):
-    id = fields.UUIDField(pk=True)
-    user_id = fields.UUIDField()
-    type = fields.CharField(max_length=50)
-    title = fields.CharField(max_length=255)
-    body = fields.TextField()
-    related_entity = fields.CharField(max_length=50, null=True)
-    entity_id = fields.UUIDField(null=True)
-    sent_at = fields.DatetimeField(null=True)
-    read_at = fields.DatetimeField(null=True)
-    status = fields.CharField(max_length=50, default="pending")
-    created_at = fields.DatetimeField(auto_now_add=True)
+class Notification(SQLModel, table=True):
+    __tablename__ = "notifications"
 
-    class Meta:
-        table = "notifications"
-        app = "notification_service"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID
+    type: str = Field(max_length=50)
+    title: str = Field(max_length=255)
+    body: str
+    related_entity: Optional[str] = Field(default=None, max_length=50)
+    entity_id: Optional[uuid.UUID] = Field(default=None)
+    sent_at: Optional[datetime.datetime] = Field(default=None)
+    read_at: Optional[datetime.datetime] = Field(default=None)
+    status: str = Field(default="pending", max_length=50)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return self.title

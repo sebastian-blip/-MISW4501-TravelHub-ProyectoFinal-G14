@@ -48,27 +48,27 @@ async def lifespan(app: FastAPI):
     if KAFKA_ENABLED:
         try:
             logging.info(f"[Kafka] Conectando a AWS: {KAFKA_BOOTSTRAP_SERVERS}")
-            await start_producer(
-                KAFKA_BOOTSTRAP_SERVERS,
-                use_ssl=True,
-                username=KAFKA_USERNAME,
-                password=KAFKA_PASSWORD,
-                ca_path=KAFKA_CA_PATH
-            )
-            await start_consumer(
-                KAFKA_BOOTSTRAP_SERVERS,
-                use_ssl=True,
-                username=KAFKA_USERNAME,
-                password=KAFKA_PASSWORD,
-                ca_path=KAFKA_CA_PATH
-            )
-            await start_reservation_consumer(
-                KAFKA_BOOTSTRAP_SERVERS,
-                use_ssl=True,
-                username=KAFKA_USERNAME,
-                password=KAFKA_PASSWORD,
-                ca_path=KAFKA_CA_PATH
-            )
+            if True:  # Cambiar a True si la lógica indicaba USE_SSL y ya lo removemos como en service-core
+                await start_producer(
+                    KAFKA_BOOTSTRAP_SERVERS,
+                    use_ssl=True,
+                    username=KAFKA_USERNAME,
+                    password=KAFKA_PASSWORD
+                )
+                await start_consumer(
+                    KAFKA_BOOTSTRAP_SERVERS,
+                    use_ssl=True,
+                    username=KAFKA_USERNAME,
+                    password=KAFKA_PASSWORD
+                )
+                await start_reservation_consumer(
+                    KAFKA_BOOTSTRAP_SERVERS,
+                    use_ssl=True,
+                    username=KAFKA_USERNAME,
+                    password=KAFKA_PASSWORD
+                )
+            else:
+                logging.warning("[Kafka] SSL no está habilitado, no se pueden iniciar los consumidores/productores.")
         except Exception as e:
             logging.warning(f"[Kafka] No disponible: {e}")
     else:

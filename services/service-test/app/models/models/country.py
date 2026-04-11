@@ -1,19 +1,19 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from typing import Optional
+import uuid
+import datetime
 
 
-class Country(Model):
-    id = fields.UUIDField(pk=True)
-    code = fields.CharField(max_length=3, unique=True)
-    name = fields.CharField(max_length=100)
-    currency_code = fields.CharField(max_length=3)
-    active = fields.BooleanField(default=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(auto_now=True)
+class Country(SQLModel, table=True):
+    __tablename__ = "countries"
 
-    class Meta:
-        table = "countries"
-        app = "user_service"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    code: str = Field(max_length=3, unique=True)
+    name: str = Field(max_length=100)
+    currency_code: str = Field(max_length=3)
+    active: bool = Field(default=True)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return self.name

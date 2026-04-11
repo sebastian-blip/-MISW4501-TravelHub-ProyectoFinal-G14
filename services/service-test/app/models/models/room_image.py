@@ -1,18 +1,18 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from typing import Optional
+import uuid
+import datetime
 
 
-class RoomImage(Model):
-    id = fields.UUIDField(pk=True)
-    room_type_id = fields.UUIDField()
-    url = fields.TextField()
-    alt_text = fields.CharField(max_length=255, null=True)
-    sort_order = fields.IntField(default=0)
-    created_at = fields.DatetimeField(auto_now_add=True)
+class RoomImage(SQLModel, table=True):
+    __tablename__ = "room_images"
 
-    class Meta:
-        table = "room_images"
-        app = "inventory_service"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    room_type_id: uuid.UUID
+    url: str
+    alt_text: Optional[str] = Field(default=None, max_length=255)
+    sort_order: int = Field(default=0)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return f"Image {self.id}"

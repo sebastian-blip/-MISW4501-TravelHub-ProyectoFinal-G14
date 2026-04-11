@@ -1,22 +1,23 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from typing import Optional
+from decimal import Decimal
+import datetime
+import uuid
 
 
-class SpecialOffer(Model):
-    id = fields.UUIDField(pk=True)
-    hotel_id = fields.UUIDField()
-    room_type_id = fields.UUIDField(null=True)
-    title = fields.CharField(max_length=255)
-    description = fields.TextField(null=True)
-    discount_pct = fields.DecimalField(max_digits=5, decimal_places=2)
-    valid_from = fields.DateField()
-    valid_to = fields.DateField()
-    active = fields.BooleanField(default=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
+class SpecialOffer(SQLModel, table=True):
+    __tablename__ = "special_offers"
 
-    class Meta:
-        table = "special_offers"
-        app = "inventory_service"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    hotel_id: uuid.UUID
+    room_type_id: Optional[uuid.UUID] = Field(default=None)
+    title: str = Field(max_length=255)
+    description: Optional[str] = Field(default=None)
+    discount_pct: Decimal = Field(max_digits=5, decimal_places=2)
+    valid_from: datetime.date
+    valid_to: datetime.date
+    active: bool = Field(default=True)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return self.title

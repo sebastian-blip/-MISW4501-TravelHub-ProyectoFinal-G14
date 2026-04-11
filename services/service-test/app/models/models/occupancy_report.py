@@ -1,20 +1,20 @@
-from tortoise import fields
-from tortoise.models import Model
+from sqlmodel import Field, SQLModel
+from decimal import Decimal
+from typing import Optional
+import datetime
+import uuid
 
 
-class OccupancyReport(Model):
-    id = fields.UUIDField(pk=True)
-    hotel_id = fields.UUIDField()
-    report_date = fields.DateField()
-    total_rooms = fields.IntField()
-    occupied_rooms = fields.IntField(default=0)
-    occupancy_rate = fields.DecimalField(max_digits=5, decimal_places=2, default=0)
-    generated_at = fields.DatetimeField(auto_now_add=True)
+class OccupancyReport(SQLModel, table=True):
+    __tablename__ = "occupancy_reports"
 
-    class Meta:
-        table = "occupancy_reports"
-        app = "reporting_service"
-        unique_together = ("hotel_id", "report_date")
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    hotel_id: uuid.UUID
+    report_date: datetime.date
+    total_rooms: int
+    occupied_rooms: int = Field(default=0)
+    occupancy_rate: Decimal = Field(default=Decimal("0"), max_digits=5, decimal_places=2)
+    generated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     def __str__(self):
         return f"Occupancy Report {self.hotel_id} - {self.report_date}"

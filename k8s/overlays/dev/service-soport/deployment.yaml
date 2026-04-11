@@ -53,8 +53,6 @@ spec:
           envFrom:
             - secretRef:
                 name: travelhub-postgres
-            - secretRef:
-                name: kafka-credentials # debe tener KAFKA_USERNAME y KAFKA_PASSWORD (o los nombres que uses)
 
           volumeMounts:
             - name: kafka-ca

@@ -2,12 +2,13 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: service-soport
+  namespace: apps
   annotations:
-    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
 spec:
+  ingressClassName: alb
   rules:
     - http:
         paths:
@@ -17,4 +18,4 @@ spec:
               service:
                 name: service-soport
                 port:
-                  name: http
+                  number: 80

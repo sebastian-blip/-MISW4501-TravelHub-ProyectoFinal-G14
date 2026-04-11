@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: apps
+
+resources:
+  - namespace.yaml
+  - external-secret.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+# IMPORTANTE:
+# Cuando tengas AWS/ECR, remplaza el name/newName por tu repo real:
+#   <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPO_PREFIX>/service-soport
+# El workflow luego hará "bump" del tag automáticamente.
+# images:
+ # - name: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
+ #   newName: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
+  #  newTag: "dev"

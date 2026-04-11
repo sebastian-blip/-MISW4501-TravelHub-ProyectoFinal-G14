@@ -20,19 +20,6 @@ spec:
         - name: kafka-ca
           emptyDir: {}
 
-      initContainers:
-        - name: fetch-kafka-ca
-          image: amazon/aws-cli:2.15.57
-          imagePullPolicy: IfNotPresent
-          command: ["/bin/sh", "-c"]
-          args:
-            - >
-              set -euo pipefail;
-              aws s3 cp s3://travelhubg14/kafka/ca-cert.pem /certs/ca-cert.pem;
-              ls -l /certs/ca-cert.pem;
-          volumeMounts:
-            - name: kafka-ca
-              mountPath: /certs
 
       containers:
         - name: service-soport
@@ -42,18 +29,9 @@ spec:
             - name: http
               containerPort: 3000
 
-          env:
-            - name: KAFKA_CA_PATH
-              value: "/certs/ca-cert.pem"
-
           envFrom:
             - secretRef:
                 name: travelhub-postgres
-
-          volumeMounts:
-            - name: kafka-ca
-              mountPath: /certs
-              readOnly: true
 
           readinessProbe:
             httpGet:

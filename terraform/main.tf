@@ -120,6 +120,44 @@ module "eso_irsa" {
   role_policy_arns = {
     eso = aws_iam_policy.eso_policy.arn
   }
+
+}
+data "aws_iam_policy_document" "service_soport_s3_read" {
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = ["arn:aws:s3:::travelhubg14"]
+  }
+
+  statement {
+    actions = ["s3:GetObject"]
+    resources = [
+      "arn:aws:s3:::travelhubg14/kafka/ca-cert.pem"
+      # o usa arn:aws:s3:::travelhubg14/* si prefieres más amplio
+    ]
+  }
+}
+
+resource "aws_iam_policy" "service_soport_s3_read" {
+  name   = "ServiceSoportS3Read"
+  policy = data.aws_iam_policy_document.service_soport_s3_read.json
+}
+
+module "service_soport_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.39.0"
+
+  role_name = "eks-service-soport-s3-read-role"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["apps:service-soport-sa"]
+    }
+  }
+
+  role_policy_arns = {
+    s3 = aws_iam_policy.service_soport_s3_read.arn
+  }
 }
 
 resource "kubernetes_namespace_v1" "external_secrets" {

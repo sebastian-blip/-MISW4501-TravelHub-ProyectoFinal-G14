@@ -1,0 +1,60 @@
+name: Build and Push Changed Service Images
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get changed services
+        id: changed-services
+        run: |
+          # Detecta el ref de comparación según el evento
+          diff_ref="${{ github.event.before }}"
+
+          # Si el ref no existe (ej: primer push), no falla el job
+          git rev-parse --verify "$diff_ref" >/dev/null 2>&1 || { echo "No valid diff ref, exiting gracefully."; echo "services_changed=" >> $GITHUB_OUTPUT; exit 0; }
+
+          # SOLO carpetas de servicios, NO archivos
+          dirs=$(git diff --name-only "$diff_ref" | grep '^services/' | awk -F/ '{print $2}' | sort -u | xargs)
+          echo "services_changed=$dirs" >> $GITHUB_OUTPUT
+
+      - name: Build and Push changed service images
+        if: steps.changed-services.outputs.services_changed != ''
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          for service in ${{ steps.changed-services.outputs.services_changed }}; do
+            IMAGE="$ECR_REGISTRY/$service:${{ github.sha }}"
+            echo "Building image for $service => $IMAGE"
+            docker build -t $IMAGE ./services/$service
+            docker push $IMAGE
+          done
+
+      - name: Summary message
+        run: |
+          if [ "${{ steps.changed-services.outputs.services_changed }}" = "" ]; then
+            echo "No service changes detected: nothing to build."
+          fi

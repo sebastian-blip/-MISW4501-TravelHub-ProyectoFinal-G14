@@ -111,7 +111,7 @@ async def get_kafka_config():
     }
 
 
-if __name__ == "__main__":
-    import uvicorn
-    print(f"Starting server... Kafka AWS: {KAFKA_BOOTSTRAP_SERVERS}")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     import uvicorn
+#     print(f"Starting server... Kafka AWS: {KAFKA_BOOTSTRAP_SERVERS}")
+#     uvicorn.run(app, host="0.0.0.0", port=8000)

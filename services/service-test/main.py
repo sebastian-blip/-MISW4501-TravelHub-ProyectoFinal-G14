@@ -13,6 +13,7 @@ from app.kafka.producer import start_producer, stop_producer
 from app.kafka.consumer import start_consumer, stop_consumer
 from app.kafka.reservation_consumer import start_reservation_consumer, stop_reservation_consumer
 from app.routes.check_router import router as check_router
+from app.routes.test_results_router import router as test_results_router
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true")
@@ -65,6 +66,7 @@ app = FastAPI(
 )
 
 app.include_router(check_router)
+app.include_router(test_results_router)
 
 
 @app.get("/health")

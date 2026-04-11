@@ -5,6 +5,7 @@ from aiokafka import AIOKafkaProducer
 TOPIC_REQUESTS = "user-validation-requests"
 TOPIC_STEP_EVENTS = "step-change-events"
 TOPIC_RESERVATION_VALIDATE = "reservation-validate-requests"
+TOPIC_AWS_TEST = "aws-test-messages"
 
 _producer: AIOKafkaProducer | None = None
 
@@ -76,3 +77,38 @@ async def publish_reservation_validate(
     
     await _producer.send_and_wait(TOPIC_RESERVATION_VALIDATE, payload)
     logging.info(f"[service-core Producer] validación reserva enviada → correlation_id={correlation_id}")
+
+
+async def publish_test_message(
+    message: str,
+    correlation_id: str,
+    priority: str = "normal",
+    metadata: dict = None,
+    timestamp: str = None
+):
+    """
+    Publica un mensaje de prueba para validar conectividad en AWS.
+    service-test recibirá este mensaje y responderá.
+    """
+    if _producer is None:
+        raise RuntimeError("Kafka producer no inicializado")
+    
+    import socket
+    hostname = socket.gethostname()
+    
+    payload = json.dumps({
+        "event": "aws_test_message",
+        "message": message,
+        "correlation_id": correlation_id,
+        "priority": priority,
+        "metadata": metadata or {},
+        "timestamp": timestamp,
+        "source": {
+            "service": "service-core",
+            "host": hostname,
+            "port": 8000
+        }
+    }).encode("utf-8")
+    
+    await _producer.send_and_wait(TOPIC_AWS_TEST, payload)
+    logging.info(f"[service-core Producer] mensaje de prueba AWS enviado → correlation_id={correlation_id}, priority={priority}")

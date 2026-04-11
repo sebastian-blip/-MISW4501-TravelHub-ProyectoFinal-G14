@@ -17,6 +17,7 @@ from routes.user_router import router as user_router
 from routes.accommodation_router import router as accommodation_router
 from routes.reservation_router import router as reservation_router
 from routes.reservation_state_machine_router import router as reservation_flow_router
+from routes.test_router import router as test_router
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true")
@@ -72,6 +73,7 @@ app.include_router(user_router)
 app.include_router(accommodation_router)
 app.include_router(reservation_router)
 app.include_router(reservation_flow_router)
+app.include_router(test_router)
 
 if __name__ == "__main__":
     import uvicorn

@@ -6,6 +6,7 @@ from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 TOPIC_REQUESTS = "user-validation-requests"
 TOPIC_RESULTS = "user-validation-results"
 TOPIC_STEP_EVENTS = "step-change-events"
+TOPIC_AWS_TEST = "aws-test-messages"
 
 # Historial en memoria
 results: list[dict] = []
@@ -24,6 +25,7 @@ async def start_consumer(bootstrap_servers: str):
     _consumer = AIOKafkaConsumer(
         TOPIC_REQUESTS,
         TOPIC_STEP_EVENTS,  # Escuchar eventos de cambio de paso
+        TOPIC_AWS_TEST,     # Escuchar mensajes de prueba AWS
         bootstrap_servers=bootstrap_servers,
         group_id="service-test-group",
         auto_offset_reset="earliest",
@@ -31,7 +33,7 @@ async def start_consumer(bootstrap_servers: str):
     )
     await _consumer.start()
     _task = asyncio.create_task(_consume())
-    logging.info(f"[service-test Consumer] escuchando topics={TOPIC_REQUESTS}, {TOPIC_STEP_EVENTS}")
+    logging.info(f"[service-test Consumer] escuchando topics={TOPIC_REQUESTS}, {TOPIC_STEP_EVENTS}, {TOPIC_AWS_TEST}")
 
 
 async def stop_consumer():
@@ -56,6 +58,8 @@ async def _consume():
             
             if topic == TOPIC_STEP_EVENTS:
                 await _handle_step_event(payload)
+            elif topic == TOPIC_AWS_TEST:
+                await _handle_aws_test_message(payload)
             else:
                 await _handle_user_validation(payload)
     except asyncio.CancelledError:
@@ -144,3 +148,56 @@ async def _handle_user_validation(payload: dict):
         logging.info(f"[service-test Consumer] ✓ Usuario existe: {email}")
     else:
         logging.info(f"[service-test Consumer] ✗ Usuario no existe: {email}")
+
+
+async def _handle_aws_test_message(payload: dict):
+    """
+    Maneja mensajes de prueba de AWS.
+    Recibe mensajes de service-core y responde confirmando recepción.
+    """
+    import socket
+    from datetime import datetime
+    
+    message = payload.get("message", "")
+    correlation_id = payload.get("correlation_id", "")
+    priority = payload.get("priority", "normal")
+    metadata = payload.get("metadata", {})
+    source = payload.get("source", {})
+    sent_timestamp = payload.get("timestamp", "")
+    
+    received_timestamp = datetime.utcnow().isoformat()
+    hostname = socket.gethostname()
+    
+    logging.info(f"[service-test Consumer] 📨 Mensaje AWS recibido: correlation_id={correlation_id}, priority={priority}")
+    logging.info(f"[service-test Consumer]    Mensaje: '{message}'")
+    logging.info(f"[service-test Consumer]    Origen: {source.get('service', 'unknown')} @ {source.get('host', 'unknown')}")
+    
+    # Preparar respuesta de confirmación
+    result = {
+        "event_type": "aws_test_response",
+        "correlation_id": correlation_id,
+        "status": "received",
+        "original_message": message,
+        "priority": priority,
+        "timestamps": {
+            "sent": sent_timestamp,
+            "received": received_timestamp
+        },
+        "source": source,
+        "destination": {
+            "service": "service-test",
+            "host": hostname,
+            "port": 8001
+        },
+        "metadata_received": metadata,
+        "message": f"✓ Mensaje recibido en service-test: '{message[:50]}...'" if len(message) > 50 else f"✓ Mensaje recibido en service-test: '{message}'"
+    }
+    
+    # Guardar en historial
+    results.append(result)
+    
+    # Enviar respuesta de vuelta a service-core
+    reply = json.dumps(result).encode("utf-8")
+    await _producer.send_and_wait(TOPIC_RESULTS, reply)
+    
+    logging.info(f"[service-test Consumer] ✓ Respuesta AWS enviada: correlation_id={correlation_id}")

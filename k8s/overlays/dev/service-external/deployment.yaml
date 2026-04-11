@@ -23,7 +23,7 @@ spec:
 
       containers:
         - name: service-external
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-external:v2
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-external:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

@@ -220,6 +220,52 @@ resource "kubernetes_manifest" "argocd_project" {
   depends_on = [helm_release.argo_cd]
 }
 
+data "http" "aws_lbc_iam_policy" {
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.8.2/docs/install/iam_policy.json"
+}
+
+resource "aws_iam_policy" "aws_lbc" {
+  name   = "AWSLoadBalancerControllerIAMPolicy"
+  policy = data.http.aws_lbc_iam_policy.response_body
+}
+
+module "aws_lbc_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.39.0"
+
+  role_name = "eks-aws-load-balancer-controller"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
+    }
+  }
+
+  role_policy_arns = {
+    aws_lbc = aws_iam_policy.aws_lbc.arn
+  }
+}
+
+resource "helm_release" "aws_load_balancer_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+
+  set = [
+    { name = "clusterName", value = module.eks.cluster_name },
+    { name = "region", value = var.region },
+    { name = "vpcId", value = module.vpc.vpc_id },
+
+    { name = "serviceAccount.create", value = "true" },
+    { name = "serviceAccount.name", value = "aws-load-balancer-controller" },
+    { name = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn", value = module.aws_lbc_irsa.iam_role_arn }
+  ]
+
+  depends_on = [module.eks, module.aws_lbc_irsa]
+}
+
 resource "kubernetes_manifest" "argocd_application" {
   manifest = {
     apiVersion = "argoproj.io/v1alpha1"

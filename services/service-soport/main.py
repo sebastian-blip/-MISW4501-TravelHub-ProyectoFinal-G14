@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 app = FastAPI(
     title="TravelHub API",
     version="0.1.0",
+    root_path="/service-soport"
 )
 
 

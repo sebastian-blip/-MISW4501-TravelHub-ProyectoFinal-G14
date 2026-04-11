@@ -4,3 +4,5 @@ kind: Kustomization
 resources:
   - platform/external-secrets
   - service-soport
+  - service-core
+  - service-external

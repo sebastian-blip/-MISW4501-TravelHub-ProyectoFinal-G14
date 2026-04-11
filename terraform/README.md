@@ -45,8 +45,10 @@ terraform apply
 ## 6) Si falla por EKS/Kubernetes provider
 Usar despliegue en 2 pasos:
 ```bash
-terraform apply -target=module.eks -auto-approve
-terraform apply -auto-approve
+terraform plan -target=module.vpc -target=module.eks -target=helm_release.argo_cd -out=plan-infra.tfplan
+terraform apply plan-infra.tfplan
+terraform plan -out=plan-full.tfplan 
+terraform apply -auto-approve plan-full.tfplan 
 ```
 
 ---

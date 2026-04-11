@@ -18,7 +18,7 @@ module "eks" {
   version = "~> 20.0"
 
   cluster_name    = var.cluster_name
-  cluster_version = "1.29"
+  cluster_version = "1.30"
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -28,16 +28,17 @@ module "eks" {
 
   enable_cluster_creator_admin_permissions = true
 
-  eks_managed_node_groups = {
-    default = {
-      desired_size   = var.node_desired_size
-      max_size       = var.node_max_size
-      min_size       = var.node_min_size
-      instance_types = [var.node_instance_type]
-      disk_size      = 20
-      ami_type       = "AL2_x86_64"
-    }
+ eks_managed_node_groups = {
+  default = {
+    desired_size   = var.node_desired_size
+    max_size       = var.node_max_size
+    min_size       = var.node_min_size
+    instance_types = [var.node_instance_type]
+    disk_size      = 20
+
+    ami_type = "AL2023_x86_64_STANDARD"
   }
+}
 
   enable_irsa = true
 }
@@ -48,7 +49,7 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
 
   exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
+    api_version = "client.authentication.k8s.io/v1"
     command     = "aws"
     args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.region]
   }
@@ -59,9 +60,14 @@ provider "helm" {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
     exec = {
-      api_version = "client.authentication.k8s.io/v1beta1"
+      api_version = "client.authentication.k8s.io/v1"
       command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "--region", var.region]
+      args        = [
+        "eks", "get-token",
+        "--cluster-name", module.eks.cluster_name,
+        "--region", var.region,
+        "--profile", "345340320521_MISWAdmins"
+      ]
     }
   }
 }
@@ -122,17 +128,7 @@ resource "kubernetes_namespace_v1" "external_secrets" {
   }
 }
 
-resource "kubernetes_service_account" "eso" {
-  metadata {
-    name      = "external-secrets-sa"
-    namespace = kubernetes_namespace_v1.external_secrets.metadata[0].name
-    annotations = {
-      "eks.amazonaws.com/role-arn" = module.eso_irsa.iam_role_arn
-    }
-  }
 
-  depends_on = [kubernetes_namespace_v1.external_secrets]
-}
 
 resource "helm_release" "external_secrets" {
   name             = "external-secrets"
@@ -142,24 +138,19 @@ resource "helm_release" "external_secrets" {
   create_namespace = true
   version          = "0.9.18"
 
-  depends_on = [module.eks, kubernetes_service_account.eso]
-
-  wait             = true
-  timeout          = 900
-  atomic           = true
-  cleanup_on_fail  = true
-  dependency_update = true
+  wait            = true
+  wait_for_jobs   = true
+  timeout         = 1800
+  atomic          = false
+  cleanup_on_fail = false
 
   set = [
-    {
-      name  = "serviceAccount.create"
-      value = "false"
-    },
-    {
-      name  = "serviceAccount.name"
-      value = kubernetes_service_account.eso.metadata[0].name
-    }
+    { name = "serviceAccount.create", value = "true" },
+    { name = "serviceAccount.name", value = "external-secrets-sa" },
+    { name = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn", value = module.eso_irsa.iam_role_arn }
   ]
+
+  depends_on = [module.eks, module.eso_irsa]
 }
 
 resource "aws_iam_policy" "eso_policy" {

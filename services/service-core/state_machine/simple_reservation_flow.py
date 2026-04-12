@@ -52,21 +52,20 @@ class SimpleReservationFlow:
         check_in = self.context.get("check_in")
         check_out = self.context.get("check_out")
         
-        if not all([user_id, hotel_id, room_type_id, check_in, check_out]):
+        # user_id es opcional (puede ser reserva de invitado/guest)
+        required_fields = ["hotel_id", "room_type_id", "check_in", "check_out"]
+        if not all([hotel_id, room_type_id, check_in, check_out]):
             return {
                 "success": False,
                 "proceed": False,
                 "error": "Faltan datos obligatorios",
-                "missing": [k for k in ["user_id", "hotel_id", "room_type_id", "check_in", "check_out"] 
-                           if not self.context.get(k)]
+                "missing": [k for k in required_fields if not self.context.get(k)]
             }
         
         print(f"[Flow] Paso 1 - Solicitando validación a service-test: user={user_id}")
         
-
-
-
         correlation_id = str(uuid.uuid4())
+        from_kafka = False  # Inicializar por si falla Kafka
         try:
             await publish_reservation_validate(
                 user_id=user_id,
@@ -95,15 +94,16 @@ class SimpleReservationFlow:
             # Si falla Kafka, continuamos con validación local (fallback)
             exists = False
 
-        # 4. Consultar BD (local o compartida con service-test)
+        # 4. Consultar BD - Validar que no exista solapamiento de fechas para la misma habitación
         async with async_session_maker() as session:
+            # Lógica de solapamiento: 
+            # Hay solapamiento si: nueva_check_in < existente_check_out AND nueva_check_out > existente_check_in
             stmt = select(Reservation).where(
                 and_(
-                    Reservation.user_id == UUID(user_id),
                     Reservation.hotel_id == UUID(hotel_id),
                     Reservation.room_type_id == UUID(room_type_id),
-                    Reservation.check_in == check_in,
-                    Reservation.check_out == check_out,
+                    Reservation.check_in < check_out,      # La existente empieza antes de que termine la nueva
+                    Reservation.check_out > check_in,      # La existente termina después de que empiece la nueva
                     Reservation.status.in_(["pending", "confirmed"])
                 )
             )
@@ -114,14 +114,17 @@ class SimpleReservationFlow:
             if existing:
                 return {
                     "success": True,
-                    "proceed": False,  # No continuar, ya existe
+                    "proceed": False,  # No continuar, fechas solapadas
                     "exists": True,
-                    "from_kafka": from_kafka,  # Indica si vino de service-test
+                    "overlap": True,  # Indica solapamiento de fechas
+                    "from_kafka": from_kafka,
                     "confirmation_code": existing.confirmation_code,
-                    "message": f"Ya existe reserva: {existing.confirmation_code}",
+                    "message": f"La habitación ya está reservada en esas fechas. Reserva existente: {existing.confirmation_code}",
                     "reservation": {
                         "id": str(existing.id),
                         "status": existing.status,
+                        "check_in": str(existing.check_in),
+                        "check_out": str(existing.check_out),
                         "total_price": str(existing.total_price)
                     }
                 }
@@ -155,17 +158,23 @@ class SimpleReservationFlow:
             total_price = base + taxes - discounts
         
         try:
+            # user_id es opcional (puede ser reserva de invitado)
+            user_id = UUID(self.context["user_id"]) if self.context.get("user_id") else None
+            
             command = CreateReservationCommand(
-                user_id=UUID(self.context["user_id"]),
+                user_id=user_id,
                 hotel_id=UUID(self.context["hotel_id"]),
                 room_type_id=UUID(self.context["room_type_id"]),
                 check_in=self.context["check_in"],
                 check_out=self.context["check_out"],
+                primary_guest=self.context.get("primary_guest"),
+                payment=self.context.get("payment"),
                 guests=self.context.get("guests", 1),
                 base_price=base,
                 taxes=taxes,
                 discounts=discounts,
                 total_price=total_price,
+                currency_code=self.context.get("currency_code", "USD"),
                 special_requests=self.context.get("special_requests"),
             )
             
@@ -180,8 +189,37 @@ class SimpleReservationFlow:
                 "proceed": True,
                 "confirmation_code": result.confirmation_code,
                 "reservation_id": str(result.id),
-                "total_price": str(result.total_price),
-                "message": f"Reserva creada: {result.confirmation_code}"
+                "status": result.status,
+                "message": result.message,
+                "hotel": {
+                    "id": str(result.hotel.id),
+                    "name": result.hotel.name,
+                    "description": result.hotel.description,
+                    "address": result.hotel.address,
+                    "city": result.hotel.city,
+                    "stars": result.hotel.stars,
+                    "rating": str(result.hotel.rating) if result.hotel.rating else None,
+                },
+                "room_type": {
+                    "id": str(result.room_type.id),
+                    "name": result.room_type.name,
+                    "description": result.room_type.description,
+                    "max_capacity": result.room_type.max_capacity,
+                    "bed_type": result.room_type.bed_type,
+                    "size_sqm": str(result.room_type.size_sqm) if result.room_type.size_sqm else None,
+                },
+                "pricing": {
+                    "nights": result.pricing.nights,
+                    "guests": result.pricing.guests,
+                    "price_per_night": str(result.pricing.price_per_night),
+                    "subtotal": str(result.pricing.subtotal),
+                    "taxes": str(result.pricing.taxes),
+                    "discounts": str(result.pricing.discounts),
+                    "total": str(result.pricing.total),
+                    "currency_code": result.pricing.currency_code,
+                },
+                "check_in": str(result.check_in),
+                "check_out": str(result.check_out),
             }
             
         except Exception as e:

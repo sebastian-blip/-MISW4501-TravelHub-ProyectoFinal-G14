@@ -1,4 +1,12 @@
 name: local
 variables:
   - name: token
-    value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwidXNlcl90eXBlIjoidHJhdmVsZXIiLCJleHAiOjE3NzU4NDQ4OTJ9.GVSLwG7clW6WzjzsK9PR2Ag6uRUC9nr23fE5r9Kh2JQ"
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwidXNlcl90eXBlIjoidHJhdmVsZXIiLCJleHAiOjE3NzU4NDQ4OTJ9.GVSLwG7clW6WzjzsK9PR2Ag6uRUC9nr23fE5r9Kh2JQ
+  - name: local_core
+    value: http://0.0.0.0:8000
+  - name: core
+    value: http://k8s-travelhubdev-3d982ad1bb-1861797429.us-east-2.elb.amazonaws.com/service-core
+  - name: local_test
+    value: http://0.0.0.0:8001
+  - name: test
+    value: http://k8s-travelhubdev-3d982ad1bb-1861797429.us-east-2.elb.amazonaws.com/service-test

@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://0.0.0.0:8001/test-results/aws-messages
+  url: "{{test}}/test-results/aws-messages"
   auth: inherit
 
 settings:

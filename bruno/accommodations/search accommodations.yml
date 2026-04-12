@@ -5,7 +5,20 @@ info:
 
 http:
   method: GET
-  url: http://0.0.0.0:8000/accommodations/search?city={{city}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}
+  url: "{{local_core}}/accommodations/search?city={{city}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
+  params:
+    - name: city
+      value: "{{city}}"
+      type: query
+    - name: check_in
+      value: "{{check_in}}"
+      type: query
+    - name: check_out
+      value: "{{check_out}}"
+      type: query
+    - name: guests
+      value: "{{guests}}"
+      type: query
   auth: inherit
 
 runtime:

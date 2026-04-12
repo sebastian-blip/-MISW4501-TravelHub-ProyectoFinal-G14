@@ -6,24 +6,44 @@ from typing import Optional
 from datetime import date
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from state_machine.simple_reservation_flow import SimpleReservationFlow
 
 router = APIRouter(prefix="/reservation-flow", tags=["Reservation Flow"])
 
 
+class PrimaryGuestRequest(BaseModel):
+    first_name: str
+    last_name: str
+    document_type: Optional[str] = None
+    document_number: Optional[str] = None
+    nationality: Optional[str] = None
+
+
+class PaymentRequest(BaseModel):
+    amount: str
+    currency_code: str = "USD"
+    payment_token: str
+    provider_id: Optional[str] = None
+
+
 class CreateRequest(BaseModel):
-    user_id: str
+    user_id: Optional[str] = Field(default=None)
     hotel_id: str
     room_type_id: str
     check_in: date
     check_out: date
     guests: int = 1
-    base_price: Optional[str] = "500.00"
-    taxes: Optional[str] = "50.00"
-    discounts: Optional[str] = "0.00"
-    total_price: Optional[str] = None
+    base_price: str = "0.00"
+    taxes: str = "0.00"
+    discounts: str = "0.00"
+    total_price: str = "0.00"
+    currency_code: str = "USD"
+    primary_guest: PrimaryGuestRequest
+    payment: PaymentRequest
+    cart_id: Optional[str] = None
+    cancellation_policy: Optional[str] = None
     special_requests: Optional[str] = None
 
 
@@ -36,8 +56,8 @@ async def create_reservation(request: CreateRequest):
     """
     Flujo: validate → create.
     
-    1. Valida si existe reserva duplicada
-    2. Si no existe, la crea
+    1. Valida si existe reserva duplicada (solapamiento de fechas)
+    2. Si no existe, la crea con guest principal y pago
     3. Retorna confirmation_code o error
     """
     try:
@@ -53,6 +73,11 @@ async def create_reservation(request: CreateRequest):
             taxes=request.taxes,
             discounts=request.discounts,
             total_price=request.total_price,
+            currency_code=request.currency_code,
+            primary_guest=request.primary_guest,
+            payment=request.payment,
+            cart_id=request.cart_id,
+            cancellation_policy=request.cancellation_policy,
             special_requests=request.special_requests,
         )
         

@@ -7,9 +7,9 @@ import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.domains.cdn_storage.adapters import create_adapter
-from app.domains.cdn_storage.ports import StoragePort
-from service_external.contracts.storage import SignedUrlRequest
+from domains.cdn_storage.adapters import create_adapter
+from domains.cdn_storage.ports import StoragePort
+from domains.cdn_storage.contracts import SignedUrlRequest
 
 router = APIRouter()
 _adapter: StoragePort | None = None

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from service_external.contracts.storage import (
+from domains.cdn_storage.contracts import (
     SignedUrlRequest,
     SignedUrlResult,
     UploadRequest,

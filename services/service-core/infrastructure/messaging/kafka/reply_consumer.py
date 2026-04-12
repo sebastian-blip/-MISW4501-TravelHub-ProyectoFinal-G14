@@ -6,6 +6,7 @@ from aiokafka import AIOKafkaConsumer
 
 TOPIC_RESULTS = "user-validation-results"
 TOPIC_RESERVATION_RESULTS = "reservation-validate-results"
+TOPIC_BOOKING_INTEGRATION_RESULTS = "booking-integration-results"
 
 # Futures pendientes por correlation_id — el handler espera aquí
 _pending: dict[str, asyncio.Future] = {}
@@ -33,17 +34,23 @@ async def start_reply_consumer(
 
     config["sasl_mechanism"] = "SCRAM-SHA-256"
     config["security_protocol"] = "SASL_PLAINTEXT"
-    config["sasl_plain_username"] = "admin"
-    config["sasl_plain_password"] = "AdminPass_2026!"
+    config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME", "")
+    config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD", "")
     
     _consumer = AIOKafkaConsumer(
         TOPIC_RESULTS,
         TOPIC_RESERVATION_RESULTS,
+        TOPIC_BOOKING_INTEGRATION_RESULTS,
         **config
     )
     await _consumer.start()
     _task = asyncio.create_task(_consume())
-    logging.info(f"[service-core ReplyConsumer] escuchando topics={TOPIC_RESULTS}, {TOPIC_RESERVATION_RESULTS}")
+    logging.info(
+        "[service-core ReplyConsumer] escuchando topics=%s, %s, %s",
+        TOPIC_RESULTS,
+        TOPIC_RESERVATION_RESULTS,
+        TOPIC_BOOKING_INTEGRATION_RESULTS,
+    )
 
 
 async def stop_reply_consumer():

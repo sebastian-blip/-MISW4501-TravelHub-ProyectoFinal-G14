@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import uuid
 
-from app.domains.notification.ports.notification_port import NotificationPort
-from service_external.contracts.notification import (
+from domains.notification.ports.notification_port import NotificationPort
+from domains.notification.contracts import (
     EmailNotificationRequest,
     NotificationEnqueueResult,
     PushNotificationRequest,

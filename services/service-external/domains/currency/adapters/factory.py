@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.domains.currency.ports.currency_exchange_port import CurrencyExchangePort
+from domains.currency.ports.currency_exchange_port import CurrencyExchangePort
 
 _STRATEGIES: dict[str, type] = {}
 
@@ -8,8 +8,8 @@ _STRATEGIES: dict[str, type] = {}
 def _load_strategies() -> dict[str, type]:
     if _STRATEGIES:
         return _STRATEGIES
-    from app.domains.currency.adapters.currency_exchange_adapter import CurrencyExchangeAdapter
-    from app.domains.currency.adapters.mock_adapter import MockCurrencyAdapter
+    from domains.currency.adapters.currency_exchange_adapter import CurrencyExchangeAdapter
+    from domains.currency.adapters.mock_adapter import MockCurrencyAdapter
 
     _STRATEGIES["exchange"] = CurrencyExchangeAdapter
     _STRATEGIES["mock"] = MockCurrencyAdapter

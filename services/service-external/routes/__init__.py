@@ -1,14 +1,14 @@
 """HTTP entry layer: one module per integration prefix.
 
-`app.main` should only create FastAPI and call `mount_routes` here.
-Each submodule wires FastAPI to `app.domains.*` (ports + adapter factory).
+`main` should only create FastAPI and call `mount_routes` here.
+Each submodule wires FastAPI to `domains.*` (ports + adapter factory).
 """
 
 from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.routes import cdn_storage, currency, maps, notification, payment, pms
+from . import cdn_storage, currency, maps, notification, payment, pms
 
 
 def mount_routes(app: FastAPI) -> None:

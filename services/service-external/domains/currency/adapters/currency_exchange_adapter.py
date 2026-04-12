@@ -3,16 +3,16 @@ from __future__ import annotations
 import time
 from decimal import Decimal
 
-from app.domains.currency.ports.currency_exchange_port import CurrencyExchangePort
-from service_external.adapters.currency_exchange.config import CurrencyExchangeSettings
-from service_external.adapters.currency_exchange.exchange_client import ExchangeClient
-from service_external.contracts.currency_exchange import (
+from domains.currency.ports.currency_exchange_port import CurrencyExchangePort
+from domains.currency.adapters.config import CurrencyExchangeSettings
+from domains.currency.adapters.exchange_client import ExchangeClient
+from domains.currency.contracts import (
     ConversionRequest,
     ConversionResult,
     ExchangeRateQuery,
     ExchangeRateResult,
 )
-from service_external.resilience import CircuitBreaker, retry_with_backoff
+from resilience import CircuitBreaker, retry_with_backoff
 
 
 class CurrencyExchangeAdapter(CurrencyExchangePort):

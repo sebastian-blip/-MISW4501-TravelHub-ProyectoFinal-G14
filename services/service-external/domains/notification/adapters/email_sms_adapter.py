@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from app.domains.notification.ports.notification_port import NotificationPort
-from service_external.adapters.email_sms.notification_client import NotificationClient
-from service_external.contracts.notification import (
+from domains.notification.ports.notification_port import NotificationPort
+from domains.notification.adapters.notification_client import NotificationClient
+from domains.notification.contracts import (
     EmailNotificationRequest,
     NotificationEnqueueResult,
     PushNotificationRequest,
     SmsNotificationRequest,
 )
-from service_external.resilience import CircuitBreaker, retry_with_backoff
+from resilience import CircuitBreaker, retry_with_backoff
 
 
 class EmailSmsAdapter(NotificationPort):

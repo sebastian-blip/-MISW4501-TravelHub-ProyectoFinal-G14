@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import date, timedelta
 from decimal import Decimal
 
-from app.domains.pms.ports.pms_port import PMSIntegrationPort
-from service_external.contracts.pms import (
+from domains.pms.ports.pms_port import PMSIntegrationPort
+from domains.pms.contracts import (
     AvailabilityQuery,
     AvailabilitySlot,
     PMSBookingPayload,

@@ -6,9 +6,9 @@ import os
 
 from fastapi import APIRouter, HTTPException
 
-from app.domains.maps.adapters import create_adapter
-from app.domains.maps.ports import LocationPort
-from service_external.contracts.location import GeocodeRequest
+from domains.maps.adapters import create_adapter
+from domains.maps.ports import LocationPort
+from domains.maps.contracts import GeocodeRequest
 
 router = APIRouter()
 _adapter: LocationPort | None = None

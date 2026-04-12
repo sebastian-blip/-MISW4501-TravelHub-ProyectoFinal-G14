@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from service_external.contracts.notification import (
+from domains.notification.contracts import (
     EmailNotificationRequest,
     NotificationEnqueueResult,
     PushNotificationRequest,

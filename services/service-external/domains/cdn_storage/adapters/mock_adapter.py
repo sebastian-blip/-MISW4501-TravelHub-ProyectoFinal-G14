@@ -3,8 +3,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from app.domains.cdn_storage.ports.storage_port import StoragePort
-from service_external.contracts.storage import (
+from domains.cdn_storage.ports.storage_port import StoragePort
+from domains.cdn_storage.contracts import (
     SignedUrlRequest,
     SignedUrlResult,
     UploadRequest,

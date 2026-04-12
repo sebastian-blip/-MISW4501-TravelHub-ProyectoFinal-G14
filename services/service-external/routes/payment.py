@@ -7,9 +7,9 @@ import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.domains.payment.adapters import create_adapter
-from app.domains.payment.ports import PaymentPort
-from service_external.contracts.payment import PaymentIntentRequest
+from domains.payment.adapters import create_adapter
+from domains.payment.ports import PaymentPort
+from domains.payment.contracts import PaymentIntentRequest
 
 router = APIRouter()
 _adapter: PaymentPort | None = None

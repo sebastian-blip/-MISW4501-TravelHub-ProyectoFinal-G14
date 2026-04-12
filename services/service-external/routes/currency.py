@@ -6,9 +6,9 @@ import os
 
 from fastapi import APIRouter, HTTPException
 
-from app.domains.currency.adapters import create_adapter
-from app.domains.currency.ports import CurrencyExchangePort
-from service_external.contracts.currency_exchange import ExchangeRateQuery
+from domains.currency.adapters import create_adapter
+from domains.currency.ports import CurrencyExchangePort
+from domains.currency.contracts import ExchangeRateQuery
 
 router = APIRouter()
 _adapter: CurrencyExchangePort | None = None

@@ -181,7 +181,8 @@ class SimpleReservationFlow:
                 "confirmation_code": result.confirmation_code,
                 "reservation_id": str(result.id),
                 "total_price": str(result.total_price),
-                "message": f"Reserva creada: {result.confirmation_code}"
+                "currency_code": result.currency_code,
+                "message": f"Reserva creada: {result.confirmation_code}",
             }
             
         except Exception as e:
@@ -262,12 +263,55 @@ class SimpleReservationFlow:
         
         if not step2["success"]:
             return {"completed": False, "step": "create", "result": step2}
-        
+
+        # Mock payment + PMS en service-external: publicar y esperar respuesta en Kafka (mismo correlation_id).
+        booking_reply: dict | None = None
+        try:
+            import os
+            import uuid as _uuid
+
+            import asyncio
+
+            from infrastructure.messaging.kafka.producer import publish_booking_integration
+            from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
+
+            correlation_id = str(_uuid.uuid4())
+            timeout_s = float(os.getenv("TH_BOOKING_REPLY_TIMEOUT", "30"))
+            # Registrar el waiter antes del publish para no perder respuestas muy rápidas.
+            wait_task = asyncio.create_task(wait_for_reply(correlation_id, timeout=timeout_s))
+            await asyncio.sleep(0)
+            await publish_booking_integration(
+                correlation_id=correlation_id,
+                reservation_id=str(step2["reservation_id"]),
+                user_id=str(self.context["user_id"]),
+                hotel_id=str(self.context["hotel_id"]),
+                room_type_id=str(self.context["room_type_id"]),
+                check_in=str(self.context["check_in"]),
+                check_out=str(self.context["check_out"]),
+                guests=int(self.context.get("guests", 1)),
+                total_price=str(step2.get("total_price", "")),
+                currency_code=str(
+                    step2.get("currency_code") or self.context.get("currency_code") or "USD"
+                ),
+            )
+            booking_reply = await wait_task
+            print(
+                f"[Flow] booking_integration respuesta Kafka payment_ok={booking_reply.get('payment_ok')} "
+                f"pms_ok={booking_reply.get('pms_ok')}"
+            )
+        except TimeoutError as e:
+            print(f"[Flow] booking_integration timeout esperando Kafka: {e}")
+            booking_reply = {"error": "timeout", "detail": str(e)}
+        except Exception as e:
+            print(f"[Flow] booking_integration Kafka omitido o falló: {e}")
+            booking_reply = {"error": str(e)}
+
         return {
             "completed": True,
             "step": "create",
             "history": self.history,
-            "result": step2
+            "result": step2,
+            "booking_integration": booking_reply,
         }
     
     async def run_cancel_flow(self, confirmation_code: str) -> Dict[str, Any]:

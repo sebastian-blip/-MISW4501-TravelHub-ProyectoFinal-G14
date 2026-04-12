@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from service_external.contracts.payment import (
+from domains.payment.contracts import (
     PaymentIntentRequest,
     PaymentIntentResult,
     RefundRequest,

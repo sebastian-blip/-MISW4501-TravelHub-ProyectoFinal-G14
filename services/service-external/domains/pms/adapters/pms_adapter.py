@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from app.domains.pms.ports.pms_port import PMSIntegrationPort
-from service_external.adapters.pms.pms_client import PMSClient
-from service_external.contracts.pms import (
+from domains.pms.ports.pms_port import PMSIntegrationPort
+from domains.pms.adapters.pms_client import PMSClient
+from domains.pms.contracts import (
     AvailabilityQuery,
     AvailabilitySlot,
     PMSBookingPayload,
     PMSCatalogSnapshot,
     WebhookRegistration,
 )
-from service_external.resilience import CircuitBreaker, retry_with_backoff
+from resilience import CircuitBreaker, retry_with_backoff
 
 
 class PMSAdapter(PMSIntegrationPort):

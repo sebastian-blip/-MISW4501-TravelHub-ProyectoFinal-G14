@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.domains.cdn_storage.ports.storage_port import StoragePort
+from domains.cdn_storage.ports.storage_port import StoragePort
 
 _STRATEGIES: dict[str, type] = {}
 
@@ -8,8 +8,8 @@ _STRATEGIES: dict[str, type] = {}
 def _load_strategies() -> dict[str, type]:
     if _STRATEGIES:
         return _STRATEGIES
-    from app.domains.cdn_storage.adapters.cdn_storage_adapter import CDNStorageAdapter
-    from app.domains.cdn_storage.adapters.mock_adapter import MockStorageAdapter
+    from domains.cdn_storage.adapters.cdn_storage_adapter import CDNStorageAdapter
+    from domains.cdn_storage.adapters.mock_adapter import MockStorageAdapter
 
     _STRATEGIES["cdn"] = CDNStorageAdapter
     _STRATEGIES["mock"] = MockStorageAdapter

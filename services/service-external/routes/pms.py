@@ -6,8 +6,8 @@ import os
 
 from fastapi import APIRouter, HTTPException
 
-from app.domains.pms.adapters import create_adapter
-from app.domains.pms.ports import PMSIntegrationPort
+from domains.pms.adapters import create_adapter
+from domains.pms.ports import PMSIntegrationPort
 
 router = APIRouter()
 _adapter: PMSIntegrationPort | None = None

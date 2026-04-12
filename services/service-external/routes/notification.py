@@ -7,9 +7,9 @@ import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 
-from app.domains.notification.adapters import create_adapter
-from app.domains.notification.ports import NotificationPort
-from service_external.contracts.notification import EmailNotificationRequest
+from domains.notification.adapters import create_adapter
+from domains.notification.ports import NotificationPort
+from domains.notification.contracts import EmailNotificationRequest
 
 router = APIRouter()
 _adapter: NotificationPort | None = None

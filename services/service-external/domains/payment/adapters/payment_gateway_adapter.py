@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from app.domains.payment.ports.payment_port import PaymentPort
-from service_external.adapters.payment_gateway.gateway_client import GatewayClient
-from service_external.adapters.payment_gateway.tokenization_handler import TokenizationHandler
-from service_external.contracts.payment import (
+from domains.payment.ports.payment_port import PaymentPort
+from domains.payment.adapters.gateway_client import GatewayClient
+from domains.payment.adapters.tokenization_handler import TokenizationHandler
+from domains.payment.contracts import (
     PaymentIntentRequest,
     PaymentIntentResult,
     RefundRequest,
     RefundResult,
     TokenizeCardResult,
 )
-from service_external.resilience import CircuitBreaker, retry_with_backoff
+from resilience import CircuitBreaker, retry_with_backoff
 
 
 class PaymentGatewayAdapter(PaymentPort):

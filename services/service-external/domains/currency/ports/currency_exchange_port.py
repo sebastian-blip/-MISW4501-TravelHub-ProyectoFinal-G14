@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from service_external.contracts.currency_exchange import (
+from domains.currency.contracts import (
     ConversionRequest,
     ConversionResult,
     ExchangeRateQuery,

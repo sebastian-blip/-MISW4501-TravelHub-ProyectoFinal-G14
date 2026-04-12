@@ -1,3 +1,3 @@
-from app.domains.notification.ports.notification_port import NotificationPort
+from domains.notification.ports.notification_port import NotificationPort
 
 __all__ = ["NotificationPort"]

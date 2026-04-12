@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.domains.pms.ports.pms_port import PMSIntegrationPort
+from domains.pms.ports.pms_port import PMSIntegrationPort
 
 _STRATEGIES: dict[str, type] = {}
 
@@ -8,8 +8,8 @@ _STRATEGIES: dict[str, type] = {}
 def _load_strategies() -> dict[str, type]:
     if _STRATEGIES:
         return _STRATEGIES
-    from app.domains.pms.adapters.pms_adapter import PMSAdapter
-    from app.domains.pms.adapters.mock_adapter import MockPMSAdapter
+    from domains.pms.adapters.pms_adapter import PMSAdapter
+    from domains.pms.adapters.mock_adapter import MockPMSAdapter
 
     _STRATEGIES["pms"] = PMSAdapter
     _STRATEGIES["mock"] = MockPMSAdapter

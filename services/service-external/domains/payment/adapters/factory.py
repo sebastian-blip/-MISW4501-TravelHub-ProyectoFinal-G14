@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.domains.payment.ports.payment_port import PaymentPort
+from domains.payment.ports.payment_port import PaymentPort
 
 _STRATEGIES: dict[str, type] = {}
 
@@ -8,8 +8,8 @@ _STRATEGIES: dict[str, type] = {}
 def _load_strategies() -> dict[str, type]:
     if _STRATEGIES:
         return _STRATEGIES
-    from app.domains.payment.adapters.payment_gateway_adapter import PaymentGatewayAdapter
-    from app.domains.payment.adapters.mock_adapter import MockPaymentAdapter
+    from domains.payment.adapters.payment_gateway_adapter import PaymentGatewayAdapter
+    from domains.payment.adapters.mock_adapter import MockPaymentAdapter
 
     _STRATEGIES["gateway"] = PaymentGatewayAdapter
     _STRATEGIES["mock"] = MockPaymentAdapter

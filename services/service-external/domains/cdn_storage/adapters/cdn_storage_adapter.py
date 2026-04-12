@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from app.domains.cdn_storage.ports.storage_port import StoragePort
-from service_external.adapters.cdn_storage.storage_client import StorageClient
-from service_external.contracts.storage import (
+from domains.cdn_storage.ports.storage_port import StoragePort
+from domains.cdn_storage.adapters.storage_client import StorageClient
+from domains.cdn_storage.contracts import (
     SignedUrlRequest,
     SignedUrlResult,
     UploadRequest,
     UploadResult,
 )
-from service_external.resilience import CircuitBreaker, retry_with_backoff
+from resilience import CircuitBreaker, retry_with_backoff
 
 
 class CDNStorageAdapter(StoragePort):

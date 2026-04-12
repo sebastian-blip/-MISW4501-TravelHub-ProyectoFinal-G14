@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import uuid
 
-from app.domains.payment.ports.payment_port import PaymentPort
-from service_external.contracts.payment import (
+from domains.payment.ports.payment_port import PaymentPort
+from domains.payment.contracts import (
     PaymentIntentRequest,
     PaymentIntentResult,
     RefundRequest,

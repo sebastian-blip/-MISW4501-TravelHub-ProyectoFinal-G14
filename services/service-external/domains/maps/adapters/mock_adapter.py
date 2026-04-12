@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.domains.maps.ports.location_port import LocationPort
-from service_external.contracts.location import (
+from domains.maps.ports.location_port import LocationPort
+from domains.maps.contracts import (
     DirectionsRequest,
     DirectionsSummary,
     GeocodeRequest,

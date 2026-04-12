@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from app.domains.currency.ports.currency_exchange_port import CurrencyExchangePort
-from service_external.contracts.currency_exchange import (
+from domains.currency.ports.currency_exchange_port import CurrencyExchangePort
+from domains.currency.contracts import (
     ConversionRequest,
     ConversionResult,
     ExchangeRateQuery,

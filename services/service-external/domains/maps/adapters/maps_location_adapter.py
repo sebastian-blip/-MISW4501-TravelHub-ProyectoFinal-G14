@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from app.domains.maps.ports.location_port import LocationPort
-from service_external.adapters.maps_location.maps_client import MapsClient
-from service_external.contracts.location import (
+from domains.maps.ports.location_port import LocationPort
+from domains.maps.adapters.maps_client import MapsClient
+from domains.maps.contracts import (
     DirectionsRequest,
     DirectionsSummary,
     GeocodeRequest,
@@ -10,7 +10,7 @@ from service_external.contracts.location import (
     PlaceSearchRequest,
     PlaceSummary,
 )
-from service_external.resilience import CircuitBreaker, retry_with_backoff
+from resilience import CircuitBreaker, retry_with_backoff
 
 
 class MapsLocationAdapter(LocationPort):

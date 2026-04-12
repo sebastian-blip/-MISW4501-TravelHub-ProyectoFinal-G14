@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://0.0.0.0:8000/test/kafka-aws/health
+  url: "{{core}}/test/kafka-aws/health"
   auth: inherit
 
 settings:

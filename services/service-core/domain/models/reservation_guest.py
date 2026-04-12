@@ -15,7 +15,7 @@ class ReservationGuest(SQLModel, table=True):
     document_number: Optional[str] = Field(default=None, max_length=50)
     nationality: Optional[str] = Field(default=None, max_length=3)
     is_primary: bool = Field(default=False)
-    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

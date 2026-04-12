@@ -30,8 +30,23 @@ router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
 
 # Modelos Pydantic para requests
+class PrimaryGuestRequest(BaseModel):
+    first_name: str
+    last_name: str
+    document_type: Optional[str] = None
+    document_number: Optional[str] = None
+    nationality: Optional[str] = None
+
+
+class PaymentRequest(BaseModel):
+    amount: str
+    currency_code: str = "USD"
+    payment_token: str
+    provider_id: Optional[str] = None
+
+
 class CreateReservationRequest(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     hotel_id: str
     room_type_id: str
     check_in: date
@@ -42,6 +57,8 @@ class CreateReservationRequest(BaseModel):
     discounts: str = "0.00"
     total_price: str = "0.00"
     currency_code: str = "USD"
+    primary_guest: PrimaryGuestRequest
+    payment: PaymentRequest
     cart_id: Optional[str] = None
     cancellation_policy: Optional[str] = None
     special_requests: Optional[str] = None
@@ -59,7 +76,6 @@ async def create_reservation(request: CreateReservationRequest):
     try:
         mediator = Mediator()
         command = CreateReservationCommand(
-            user_id=UUID(request.user_id),
             hotel_id=UUID(request.hotel_id),
             room_type_id=UUID(request.room_type_id),
             check_in=request.check_in,
@@ -70,6 +86,9 @@ async def create_reservation(request: CreateReservationRequest):
             discounts=Decimal(request.discounts),
             total_price=Decimal(request.total_price),
             currency_code=request.currency_code,
+            user_id=UUID(request.user_id) if request.user_id else None,
+            primary_guest=request.primary_guest,
+            payment=request.payment,
             cart_id=UUID(request.cart_id) if request.cart_id else None,
             cancellation_policy=request.cancellation_policy,
             special_requests=request.special_requests,

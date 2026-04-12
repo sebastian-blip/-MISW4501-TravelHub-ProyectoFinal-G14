@@ -1,7 +1,8 @@
 """
-Consumes reservation-validate-requests (same contract as service-core / service-test).
-Replies on reservation-validate-results with randomized `exists`.
-No external reservation/PMS service calls; no database in this consumer.
+Consumes reservation-validate-requests and replies on reservation-validate-results — same
+topic names and request shape as service-core (see producer.py / reply_consumer.py).
+
+Mock: randomized `exists` (TH_MOCK_RESERVATION_EXISTS_RATE). No DB, no external PMS.
 """
 
 from __future__ import annotations

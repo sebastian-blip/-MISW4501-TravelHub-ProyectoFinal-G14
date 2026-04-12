@@ -10,6 +10,7 @@ from accommodation_service.queries.accommodation_queries import (
     HotelSummary,
     HotelAvailabilityResult,
     RoomTypeAvailability,
+    RoomAmenityInfo,
     CityInfo,
 )
 
@@ -172,6 +173,37 @@ class HotelListingRepository:
         
         room_rows = availability_result.mappings().all()
         
+        # Obtener amenities para cada room_type
+        room_type_ids = [str(row["room_type_id"]) for row in room_rows]
+        amenities_map = {}
+        
+        if room_type_ids:
+            amenities_sql = text(
+                """
+                SELECT 
+                    room_type_id,
+                    name,
+                    icon
+                FROM room_amenities
+                WHERE room_type_id = ANY(:room_type_ids)
+                ORDER BY name
+            """
+            )
+            amenities_result = await self.session.execute(
+                amenities_sql, {"room_type_ids": room_type_ids}
+            )
+            
+            for amenity_row in amenities_result.mappings().all():
+                rt_id = str(amenity_row["room_type_id"])
+                if rt_id not in amenities_map:
+                    amenities_map[rt_id] = []
+                amenities_map[rt_id].append(
+                    RoomAmenityInfo(
+                        name=amenity_row["name"],
+                        icon=amenity_row["icon"],
+                    )
+                )
+        
         available_room_types = [
             RoomTypeAvailability(
                 id=UUID(str(row["room_type_id"])),
@@ -184,6 +216,7 @@ class HotelListingRepository:
                 total_price=Decimal(str(row["total_price"])),
                 currency_code=row["currency_code"],
                 minimum_stay=row["minimum_stay"],
+                amenities=amenities_map.get(str(row["room_type_id"]), []),
             )
             for row in room_rows
         ]

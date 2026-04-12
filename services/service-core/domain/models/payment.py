@@ -20,8 +20,8 @@ class Payment(SQLModel, table=True):
     refund_amount: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)
     refunded_at: Optional[datetime.datetime] = Field(default=None)
     processed_at: Optional[datetime.datetime] = Field(default=None)
-    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
-    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
     def __str__(self):
         return f"Payment {self.id}"

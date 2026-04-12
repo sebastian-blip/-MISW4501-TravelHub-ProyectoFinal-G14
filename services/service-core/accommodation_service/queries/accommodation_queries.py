@@ -42,6 +42,13 @@ class ListCitiesQuery:
 
 
 @dataclass
+class RoomAmenityInfo:
+    """Información de amenidad de habitación"""
+    name: str
+    icon: Optional[str]
+
+
+@dataclass
 class RoomTypeAvailability:
     id: UUID
     name: str
@@ -53,6 +60,7 @@ class RoomTypeAvailability:
     total_price: Decimal
     currency_code: str
     minimum_stay: int
+    amenities: List[RoomAmenityInfo] = field(default_factory=list)
 
 
 @dataclass

@@ -19,6 +19,15 @@ import accommodation_service.queries.hotel_listing_handler  # registra handlers
 router = APIRouter(prefix="/accommodations", tags=["Accommodations"])
 
 
+class RoomAmenityOut(BaseModel):
+    """Amenidad de habitación"""
+    name: str
+    icon: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
 class RoomTypeAvailabilityOut(BaseModel):
     id: UUID
     name: str
@@ -30,6 +39,7 @@ class RoomTypeAvailabilityOut(BaseModel):
     total_price: Decimal
     currency_code: str
     minimum_stay: int
+    amenities: List[RoomAmenityOut] = []
 
     class Config:
         from_attributes = True
@@ -100,6 +110,10 @@ async def search_accommodations(
                         total_price=rt.total_price,
                         currency_code=rt.currency_code,
                         minimum_stay=rt.minimum_stay,
+                        amenities=[
+                            RoomAmenityOut(name=a.name, icon=a.icon)
+                            for a in rt.amenities
+                        ],
                     )
                     for rt in r.available_room_types
                 ],
@@ -249,6 +263,10 @@ async def get_hotel_availability(
                     total_price=rt.total_price,
                     currency_code=rt.currency_code,
                     minimum_stay=rt.minimum_stay,
+                    amenities=[
+                        RoomAmenityOut(name=a.name, icon=a.icon)
+                        for a in rt.amenities
+                    ],
                 )
                 for rt in result.available_room_types
             ],

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from accommodation_service.queries.accommodation_queries import (
     AccommodationSearchResult,
     RoomTypeAvailability,
+    RoomAmenityInfo,
 )
 
 
@@ -25,6 +26,7 @@ class AccommodationRepository:
     ) -> List[AccommodationSearchResult]:
         nights = (check_out - check_in).days
 
+        # Query principal para buscar disponibilidad
         sql = text(
             """
             SELECT
@@ -84,13 +86,45 @@ class AccommodationRepository:
 
         rows = result.mappings().all()
 
-        return self._build_results(rows)
+        # Obtener amenities para cada room_type
+        room_type_ids = [str(row["room_type_id"]) for row in rows]
+        amenities_map = {}
+        
+        if room_type_ids:
+            amenities_sql = text(
+                """
+                SELECT 
+                    room_type_id,
+                    name,
+                    icon
+                FROM room_amenities
+                WHERE room_type_id = ANY(:room_type_ids)
+                ORDER BY name
+            """
+            )
+            amenities_result = await self.session.execute(
+                amenities_sql, {"room_type_ids": room_type_ids}
+            )
+            
+            for amenity_row in amenities_result.mappings().all():
+                rt_id = str(amenity_row["room_type_id"])
+                if rt_id not in amenities_map:
+                    amenities_map[rt_id] = []
+                amenities_map[rt_id].append(
+                    RoomAmenityInfo(
+                        name=amenity_row["name"],
+                        icon=amenity_row["icon"],
+                    )
+                )
 
-    def _build_results(self, rows: list) -> List[AccommodationSearchResult]:
+        return self._build_results(rows, amenities_map)
+
+    def _build_results(self, rows: list, amenities_map: dict) -> List[AccommodationSearchResult]:
         hotels: dict[str, AccommodationSearchResult] = {}
 
         for row in rows:
             hotel_id = str(row["hotel_id"])
+            room_type_id = str(row["room_type_id"])
 
             if hotel_id not in hotels:
                 hotels[hotel_id] = AccommodationSearchResult(
@@ -107,7 +141,7 @@ class AccommodationRepository:
 
             hotels[hotel_id].available_room_types.append(
                 RoomTypeAvailability(
-                    id=UUID(str(row["room_type_id"])),
+                    id=UUID(room_type_id),
                     name=row["room_type_name"],
                     description=row["room_type_description"],
                     max_capacity=row["max_capacity"],
@@ -117,6 +151,7 @@ class AccommodationRepository:
                     total_price=Decimal(str(row["total_price"])),
                     currency_code=row["currency_code"],
                     minimum_stay=row["minimum_stay"],
+                    amenities=amenities_map.get(room_type_id, []),
                 )
             )
 

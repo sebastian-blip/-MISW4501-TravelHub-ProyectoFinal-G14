@@ -7,7 +7,6 @@ from types import ModuleType
 from fastapi import FastAPI
 from tortoise import Tortoise
 
-from infrastructure.database import TORTOISE_ORM, init_db
 from routes.health_router import router as health_router
 from routes.hotel_router import router as hotel_router
 from routes.reservation_routers.queries import router as reservation_query_router
@@ -16,7 +15,7 @@ from hotel_service.events.publisher import EventPublisher
 from infrastructure.messaging.kafka.producer import KafkaPublisher
 from hotel_service.availability import AvailabilityReadModelConsumer
 from infrastructure.database import init_db
-from test.create_test_hotels import seed_hotels
+from laboratorios.poc1.test.create_test_hotels import seed_hotels
 
 
 def _ensure_kafka_vendor_six_moves():

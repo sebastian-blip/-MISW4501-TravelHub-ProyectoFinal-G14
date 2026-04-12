@@ -11,3 +11,5 @@ sqlmodel==0.0.16
 uvicorn==0.30.0
 greenlet==3.1.1
 transitions==0.9.2
+# CI installs only requirements.txt + pytest; async tests need the plugin in this file.
+pytest-asyncio==0.23.8

@@ -85,6 +85,60 @@ class TestSimpleReservationFlowValidate:
         # Verificar que la validación no requiere user_id
         assert result["success"] is True
 
+    @pytest.mark.asyncio
+    async def test_validate_blocks_when_kafka_exists_true(self, flow):
+        """Kafka/PMS exists=true debe impedir create (sin depender del solapamiento en BD)."""
+        with patch(
+            "infrastructure.messaging.kafka.producer.publish_reservation_validate",
+            new_callable=AsyncMock,
+        ):
+            with patch(
+                "infrastructure.messaging.kafka.reply_consumer.wait_for_reply",
+                new_callable=AsyncMock,
+                return_value={"exists": True, "message": "PMS: no availability"},
+            ):
+                result = await flow.step_validate()
+
+        assert result["success"] is True
+        assert result["proceed"] is False
+        assert result.get("pms_blocked") is True
+        assert result.get("overlap") is False
+        assert "PMS" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_run_create_flow_stops_when_kafka_pms_blocks(self):
+        """Flujo completo: exists=true desde Kafka → completed false, sin step create."""
+        flow = SimpleReservationFlow()
+        flow.set_data(
+            user_id=None,
+            hotel_id="b1000000-0000-0000-0000-000000000001",
+            room_type_id="c1000000-0000-0000-0000-000000000101",
+            check_in=date(2026, 5, 1),
+            check_out=date(2026, 5, 5),
+            guests=2,
+            primary_guest=MagicMock(first_name="Test", last_name="User"),
+            payment=MagicMock(amount="100.00", payment_token="tok_123"),
+        )
+        with patch(
+            "infrastructure.messaging.kafka.producer.publish_reservation_validate",
+            new_callable=AsyncMock,
+        ):
+            with patch(
+                "infrastructure.messaging.kafka.reply_consumer.wait_for_reply",
+                new_callable=AsyncMock,
+                return_value={
+                    "exists": True,
+                    "message": "PMS: no available units for one or more nights.",
+                },
+            ):
+                result = await flow.run_create_flow()
+
+        assert result["completed"] is False
+        assert result["step"] == "validate"
+        assert result["result"].get("pms_blocked") is True
+        assert result["result"].get("overlap") is False
+        assert "PMS" in result["result"].get("message", "")
+
 
 class TestSimpleReservationFlowCreate:
     """Tests para el paso de creación (step_create)."""

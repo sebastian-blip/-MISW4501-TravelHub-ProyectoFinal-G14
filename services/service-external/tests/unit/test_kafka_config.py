@@ -6,6 +6,10 @@ from infrastructure.messaging.kafka._kafka_config import (
     consumer_base_config,
     producer_base_config,
 )
+from infrastructure.messaging.kafka.kafka_config_testing import (
+    testing_consumer_base_config,
+    testing_producer_base_config,
+)
 
 
 def test_consumer_base_config_plaintext_when_no_credentials(monkeypatch):
@@ -48,3 +52,23 @@ def test_producer_base_config_sasl_when_credentials(monkeypatch):
 
     assert cfg["bootstrap_servers"] == "b1:9092"
     assert cfg["sasl_mechanism"] == "SCRAM-SHA-256"
+
+
+def test_testing_consumer_always_plaintext_even_with_sasl_env(monkeypatch):
+    monkeypatch.setenv("KAFKA_USERNAME", "user")
+    monkeypatch.setenv("KAFKA_PASSWORD", "secret")
+
+    cfg = testing_consumer_base_config("localhost:9092", "test-group")
+
+    assert cfg["bootstrap_servers"] == "localhost:9092"
+    assert cfg["group_id"] == "test-group"
+    assert "sasl_mechanism" not in cfg
+
+
+def test_testing_producer_always_plaintext_even_with_sasl_env(monkeypatch):
+    monkeypatch.setenv("KAFKA_USERNAME", "u")
+    monkeypatch.setenv("KAFKA_PASSWORD", "p")
+
+    cfg = testing_producer_base_config("localhost:9092")
+
+    assert cfg == {"bootstrap_servers": "localhost:9092"}

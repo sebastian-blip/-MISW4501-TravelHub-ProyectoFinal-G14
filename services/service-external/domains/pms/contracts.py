@@ -16,6 +16,10 @@ class AvailabilityQuery(BaseModel):
     hotel_external_id: str
     check_in: date
     check_out: date
+    room_type_external_id: str | None = Field(
+        default=None,
+        description="Optional room/product id for PMS adapters that support per-room availability.",
+    )
 
 
 class AvailabilitySlot(BaseModel):

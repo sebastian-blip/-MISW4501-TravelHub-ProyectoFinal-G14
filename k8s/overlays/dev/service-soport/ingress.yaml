@@ -3,11 +3,13 @@ kind: Ingress
 metadata:
   name: service-soport
   annotations:
-    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/group.name: travelhub-dev
+    alb.ingress.kubernetes.io/group.order: "10"
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
 spec:
+  ingressClassName: alb
   rules:
     - http:
         paths:
@@ -17,4 +19,4 @@ spec:
               service:
                 name: service-soport
                 port:
-                  name: http
+                  number: 80

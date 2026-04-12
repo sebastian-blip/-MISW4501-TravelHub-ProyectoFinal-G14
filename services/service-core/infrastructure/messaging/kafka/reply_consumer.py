@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
+import os
 from aiokafka import AIOKafkaConsumer
 
 TOPIC_RESULTS = "user-validation-results"
+TOPIC_RESERVATION_RESULTS = "reservation-validate-results"
 
 # Futures pendientes por correlation_id — el handler espera aquí
 _pending: dict[str, asyncio.Future] = {}
@@ -12,18 +16,40 @@ _consumer: AIOKafkaConsumer | None = None
 _task: asyncio.Task | None = None
 
 
-async def start_reply_consumer(bootstrap_servers: str):
+async def start_reply_consumer(
+    bootstrap_servers: str,
+    use_ssl: bool = False,
+    username: str = "",
+    password: str = ""
+):
+    """Inicia el consumidor de respuestas con soporte para SASL."""
     global _consumer, _task
+    
+    config = {
+        "bootstrap_servers": bootstrap_servers,
+        "group_id": "service-core-reply-group",
+        "auto_offset_reset": "latest",
+        "enable_auto_commit": True,
+    }
+    
+
+    config["sasl_mechanism"] = "SCRAM-SHA-256"
+    config["security_protocol"] = "SASL_PLAINTEXT"
+    config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME", "")
+    config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD", "")
+    
     _consumer = AIOKafkaConsumer(
         TOPIC_RESULTS,
-        bootstrap_servers=bootstrap_servers,
-        group_id="service-core-reply-group",
-        auto_offset_reset="latest",
-        enable_auto_commit=True,
+        TOPIC_RESERVATION_RESULTS,
+        **config
     )
     await _consumer.start()
     _task = asyncio.create_task(_consume())
-    logging.info(f"[service-core ReplyConsumer] escuchando topic={TOPIC_RESULTS}")
+    logging.info(
+        "[service-core ReplyConsumer] escuchando topics=%s, %s",
+        TOPIC_RESULTS,
+        TOPIC_RESERVATION_RESULTS,
+    )
 
 
 async def stop_reply_consumer():
@@ -59,6 +85,6 @@ async def _consume():
             future = _pending.get(correlation_id)
             if future and not future.done():
                 future.set_result(payload)
-                logging.info(f"[service-core ReplyConsumer] respuesta recibida → correlation_id={correlation_id}")
+                logging.info(f"[service-core ReplyConsumer] respuesta recibida → correlation_id={correlation_id}, topic={msg.topic}")
     except asyncio.CancelledError:
         pass

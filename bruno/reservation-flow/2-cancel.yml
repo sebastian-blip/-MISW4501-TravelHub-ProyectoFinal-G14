@@ -1,0 +1,21 @@
+info:
+  name: cancel flow
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://0.0.0.0:8000/reservation-flow/cancel
+  body:
+    type: json
+    data: |-
+      {
+        "confirmation_code": "RESXXXXXXXX"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -31,14 +31,13 @@ class SimpleReservationFlow:
     # ========== PASO 1: VALIDATE ==========
     async def step_validate(self) -> Dict[str, Any]:
         """
-        Paso 1: Pide a service-test que valide/simule si existe reserva.
+        Paso 1: Valida vía Kafka (service-external / PMS) y luego solapamiento en BD.
         Flujo:
-        1. Envía evento a service-test vía Kafka
-        2. Espera respuesta (exists: true/false)
-        3. Si true: espera a que service-test cree en BD, luego consulta
-        4. Retorna resultado final
+        1. Publica solicitud en Kafka y espera respuesta (exists / mensaje).
+        2. Si exists=true (sin disponibilidad PMS u otro bloqueo externo): proceed=false, no crear.
+        3. Si exists=false: consulta BD por solapamiento de fechas; si hay solapamiento, proceed=false.
+        4. Si no hay bloqueo: proceed=true.
         """
-        import asyncio
         import uuid
         from sqlalchemy import select, and_
         from infrastructure.database import async_session_maker
@@ -82,12 +81,20 @@ class SimpleReservationFlow:
 
             exists = reply.get("exists", False)
             from_kafka = True
-            print(f"[Flow] service-test respondió: exists={exists}")
+            print(f"[Flow] service-external/Kafka respondió: exists={exists}")
 
-            # 3. Si service-test dice que existe, esperar un momento a que cree en BD
             if exists:
-                print(f"[Flow] Esperando 1 segundo a que service-test cree el registro...")
-                await asyncio.sleep(1.0)
+                msg = reply.get("message")
+                return {
+                    "success": True,
+                    "proceed": False,
+                    "exists": True,
+                    "overlap": False,
+                    "from_kafka": True,
+                    "pms_blocked": True,
+                    "message": (str(msg).strip() if msg else "")
+                    or "Validación externa (PMS/Kafka): no es posible crear la reserva.",
+                }
 
         except Exception as e:
             print(f"[Flow] Error en comunicación con service-test: {e}")
@@ -305,7 +312,11 @@ class SimpleReservationFlow:
             "completed": True,
             "step": "create",
             "history": self.history,
-            "result": step2
+            "validate": {
+                "from_kafka": step1.get("from_kafka"),
+                "message": step1.get("message"),
+            },
+            "result": step2,
         }
     
     async def run_cancel_flow(self, confirmation_code: str) -> Dict[str, Any]:

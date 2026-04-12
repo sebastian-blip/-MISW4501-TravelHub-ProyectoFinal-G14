@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -33,8 +35,8 @@ async def start_reply_consumer(
 
     config["sasl_mechanism"] = "SCRAM-SHA-256"
     config["security_protocol"] = "SASL_PLAINTEXT"
-    config["sasl_plain_username"] = "admin"
-    config["sasl_plain_password"] = "AdminPass_2026!"
+    config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME", "")
+    config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD", "")
     
     _consumer = AIOKafkaConsumer(
         TOPIC_RESULTS,
@@ -43,7 +45,11 @@ async def start_reply_consumer(
     )
     await _consumer.start()
     _task = asyncio.create_task(_consume())
-    logging.info(f"[service-core ReplyConsumer] escuchando topics={TOPIC_RESULTS}, {TOPIC_RESERVATION_RESULTS}")
+    logging.info(
+        "[service-core ReplyConsumer] escuchando topics=%s, %s",
+        TOPIC_RESULTS,
+        TOPIC_RESERVATION_RESULTS,
+    )
 
 
 async def stop_reply_consumer():

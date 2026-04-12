@@ -6,7 +6,6 @@ from aiokafka import AIOKafkaConsumer
 
 TOPIC_RESULTS = "user-validation-results"
 TOPIC_RESERVATION_RESULTS = "reservation-validate-results"
-TOPIC_BOOKING_INTEGRATION_RESULTS = "booking-integration-results"
 
 # Futures pendientes por correlation_id — el handler espera aquí
 _pending: dict[str, asyncio.Future] = {}
@@ -40,16 +39,14 @@ async def start_reply_consumer(
     _consumer = AIOKafkaConsumer(
         TOPIC_RESULTS,
         TOPIC_RESERVATION_RESULTS,
-        TOPIC_BOOKING_INTEGRATION_RESULTS,
         **config
     )
     await _consumer.start()
     _task = asyncio.create_task(_consume())
     logging.info(
-        "[service-core ReplyConsumer] escuchando topics=%s, %s, %s",
+        "[service-core ReplyConsumer] escuchando topics=%s, %s",
         TOPIC_RESULTS,
         TOPIC_RESERVATION_RESULTS,
-        TOPIC_BOOKING_INTEGRATION_RESULTS,
     )
 
 

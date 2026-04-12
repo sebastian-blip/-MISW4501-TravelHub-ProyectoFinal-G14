@@ -8,7 +8,7 @@ Cada carpeta `poc*` es una prueba de concepto independiente con su propio stack 
 
 | Carpeta | Descripción |
 |---------|-------------|
-| [**poc1**](poc1/README.md) | Reservas de hoteles con **CQRS** y consistencia eventual: API FastAPI, PostgreSQL, Kafka, modelo de lectura de disponibilidad, Locust y Prometheus/Grafana. |
+| [**poc1**](laboratorios/poc1/README.md) | Reservas de hoteles con **CQRS** y consistencia eventual: API FastAPI, PostgreSQL, Kafka, modelo de lectura de disponibilidad, Locust y Prometheus/Grafana. |
 | [**poc5-gdpr**](poc5-gdpr/README.md) | Experimento **derecho al olvido** (GDPR/LGPD): User Service, Reader, Reservations y Analytics consumiendo eventos vía Redis Streams, con auditoría y métrica TFO. |
 
 Cada PoC se ejecuta desde su propia carpeta (p. ej. `docker compose` dentro de `poc1` o `poc5-gdpr`). No hay un único `docker-compose` en la raíz.

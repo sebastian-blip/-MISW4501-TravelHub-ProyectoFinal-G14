@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from laboratorios.poc1.hotel_service.utils.datetime import datetime, timezone
 
 
 def ensure_utc(dt: datetime | None = None) -> datetime:

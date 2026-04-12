@@ -283,7 +283,7 @@ resource "kubernetes_manifest" "argocd_application" {
       }
       destination = {
         server    = "https://kubernetes.default.svc"
-        namespace = "service-soport"
+        namespace = "apps"
       }
       syncPolicy = {
 

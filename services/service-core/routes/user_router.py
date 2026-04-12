@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from mediatr import Mediator
 
 from user_service.queries.user_queries import GetUserByIdQuery, GetUserByEmailQuery, UserResponse
-import user_service.queries.get_user_handler  # registra handlers
+
 
 router = APIRouter(prefix="/users", tags=["Users"])
 

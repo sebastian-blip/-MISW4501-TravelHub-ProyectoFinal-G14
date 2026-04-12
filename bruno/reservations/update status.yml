@@ -1,0 +1,21 @@
+info:
+  name: update status
+  type: http
+  seq: 6
+
+http:
+  method: PATCH
+  url: http://0.0.0.0:8000/reservations/REEMPLAZAR-CON-UUID/status
+  body:
+    type: json
+    data: |-
+      {
+        "status": "confirmed"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,15 @@
+info:
+  name: list by user
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: http://0.0.0.0:8000/reservations/user/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11?limit=10&offset=0
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

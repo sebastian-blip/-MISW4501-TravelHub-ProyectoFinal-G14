@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from types import ModuleType
 
 from fastapi import FastAPI
-from tortoise import Tortoise
 
 from infrastructure.database import init_db
 from infrastructure.messaging.kafka.producer import start_producer, stop_producer
@@ -15,8 +14,16 @@ from infrastructure.messaging.kafka.reply_consumer import start_reply_consumer, 
 from routes.health_router import router as health_router
 from routes.auth_router import router as auth_router
 from routes.user_router import router as user_router
+from routes.accommodation_router import router as accommodation_router
+from routes.reservation_router import router as reservation_router
+from routes.reservation_state_machine_router import router as reservation_flow_router
+from routes.test_router import router as test_router
 
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+# Configuración de Kafka
+KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true").lower() == "true"
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
+KAFKA_USERNAME = os.getenv("KAFKA_USERNAME", "")
+KAFKA_PASSWORD = os.getenv("KAFKA_PASSWORD", "")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,30 +48,70 @@ _ensure_kafka_vendor_six_moves()
 async def lifespan(app: FastAPI):
     await init_db()
 
-    try:
-        await start_producer(KAFKA_BOOTSTRAP_SERVERS)
-        await start_reply_consumer(KAFKA_BOOTSTRAP_SERVERS)
-    except Exception as e:
-        logging.warning(f"Kafka no disponible, registro funcionará solo con DB local: {e}")
+    if KAFKA_ENABLED:
+        try:
+            logging.info(f"[Kafka] Conectando a AWS: {KAFKA_BOOTSTRAP_SERVERS}")
+            if True:  # Cambiado a True ya que USE_SSL no está definido
+                await start_producer(
+                    KAFKA_BOOTSTRAP_SERVERS,
+                    use_ssl=True,
+                    username=KAFKA_USERNAME,
+                    password=KAFKA_PASSWORD
+                )
+                await start_reply_consumer(
+                    KAFKA_BOOTSTRAP_SERVERS,
+                    use_ssl=True,
+                    username=KAFKA_USERNAME,
+                    password=KAFKA_PASSWORD
+                )
+            else:
+                await start_producer(
+                    KAFKA_BOOTSTRAP_SERVERS,
+                    use_ssl=False
+                )
+                await start_reply_consumer(
+                    KAFKA_BOOTSTRAP_SERVERS,
+                    use_ssl=False
+                )
+        except Exception as e:
+            logging.warning(f"[Kafka] No disponible: {e}")
+    else:
+        logging.info("[Kafka] Deshabilitado (KAFKA_ENABLED=false)")
 
     yield
 
-    await stop_producer()
-    await stop_reply_consumer()
-    await Tortoise.close_connections()
+    if KAFKA_ENABLED:
+        await stop_producer()
+        await stop_reply_consumer()
 
 
 app = FastAPI(
     title="TravelHub User Service",
     version="1.0.0",
     lifespan=lifespan,
+    root_path="/service-core"
 )
 
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(accommodation_router)
+app.include_router(reservation_router)
+app.include_router(reservation_flow_router)
+app.include_router(test_router)
 
-if __name__ == "__main__":
-    import uvicorn
-    print("Starting server...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+@app.get("/config/kafka")
+async def get_kafka_config():
+    """Endpoint para verificar la configuración actual de Kafka."""
+    return {
+        "kafka_enabled": KAFKA_ENABLED,
+        "bootstrap_servers": KAFKA_BOOTSTRAP_SERVERS,
+        "auth_configured": bool(KAFKA_USERNAME and KAFKA_PASSWORD)
+    }
+
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     print(f"Starting server... Kafka AWS: {KAFKA_BOOTSTRAP_SERVERS}")
+#     uvicorn.run(app, host="0.0.0.0", port=8000)

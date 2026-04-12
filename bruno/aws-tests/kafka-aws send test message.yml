@@ -1,0 +1,27 @@
+info:
+  name: kafka-aws send test message
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://0.0.0.0:8000/test/kafka-aws
+  body:
+    type: json
+    data: |-
+      {
+        "message": "Test de conectividad AWS desde Bruno",
+        "priority": "high",
+        "metadata": {
+          "test_tool": "bruno",
+          "region": "us-east-1",
+          "test_id": "aws-kafka-001"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

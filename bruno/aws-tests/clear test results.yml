@@ -1,0 +1,15 @@
+info:
+  name: clear test results
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: http://0.0.0.0:8001/test-results/clear
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

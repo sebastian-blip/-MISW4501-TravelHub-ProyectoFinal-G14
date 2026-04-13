@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from types import ModuleType
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from infrastructure.database import init_db
 from infrastructure.messaging.kafka.producer import start_producer, stop_producer
@@ -90,6 +91,15 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
     root_path="/service-core"
+)
+
+# Configuración CORS - permitir cualquier origen en desarrollo
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir todos los orígenes en desarrollo
+    allow_credentials=False,  # Debe ser False cuando allow_origins=["*"]
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(health_router)

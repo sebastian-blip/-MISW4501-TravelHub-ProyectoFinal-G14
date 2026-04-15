@@ -81,4 +81,4 @@ jobs:
             # imprimir solo la línea de TOTAL con porcentaje
             grep TOTAL $report | awk '{print $(NF-1)" "$(NF)}'
           done
-          echo "=========
+          echo "========================================="

@@ -61,7 +61,8 @@ jobs:
               pip install pytest pytest-cov
 
               echo "Running tests..."
-               pytest --cov=. --cov-report=term-missing --cov-report=txt
+              pytest --cov=. --cov-report=term-missing > ../../pytest_output_$service.txt
+
 
               deactivate
               cd - > /dev/null
@@ -74,10 +75,10 @@ jobs:
           
           echo ""
           echo "====== Coverage summary by service ======"
-          for report in coverage_*.txt; do
-            service=$(echo $report | sed 's/coverage_\(.*\)\.txt/\1/')
-            echo ""
-            echo "Service: $service"
-            grep "TOTAL" $report || cat $report | tail -20
+          for report in pytest_output_*.txt; do
+            service=$(echo $report | sed 's/pytest_output_\(.*\)\.txt/\1/')
+            echo -n "$service: "
+            # imprimir solo la línea de TOTAL con porcentaje
+            grep TOTAL $report | awk '{print $(NF-1)" "$(NF)}'
           done
-          echo "========================================="
+          echo "=========

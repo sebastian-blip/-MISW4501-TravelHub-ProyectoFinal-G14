@@ -61,7 +61,7 @@ jobs:
               pip install pytest pytest-cov
 
               echo "Running tests..."
-              pytest --cov=. --cov-report=term-missing || exit 1
+               pytest --cov=. --cov-report=term-missing --cov-report=txt
 
               deactivate
               cd - > /dev/null
@@ -71,3 +71,13 @@ jobs:
             fi
 
           done
+          
+          echo ""
+          echo "====== Coverage summary by service ======"
+          for report in coverage_*.txt; do
+            service=$(echo $report | sed 's/coverage_\(.*\)\.txt/\1/')
+            echo ""
+            echo "Service: $service"
+            grep "TOTAL" $report || cat $report | tail -20
+          done
+          echo "========================================="

@@ -58,10 +58,10 @@ jobs:
               if [ -f "requirements-dev.txt" ]; then
                 pip install -r requirements-dev.txt
               fi
-              pip install pytest
+              pip install pytest pytest-cov
 
               echo "Running tests..."
-              pytest || exit 1
+              pytest --cov=. --cov-report=term-missing || exit 1
 
               deactivate
               cd - > /dev/null

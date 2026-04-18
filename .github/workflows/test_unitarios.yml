@@ -107,6 +107,7 @@ jobs:
           echo "========================================="
           
           echo "failed=$STATUS" >> $GITHUB_OUTPUT
+          echo "failed_services=${FAILED_SERVICES:-none}" >> $GITHUB_OUTPUT
 
       - name: Upload coverage reports as artifact
         uses: actions/upload-artifact@v4

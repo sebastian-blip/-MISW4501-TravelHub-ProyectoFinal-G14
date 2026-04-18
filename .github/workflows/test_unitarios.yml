@@ -94,11 +94,14 @@ jobs:
               continue
             fi
             COVERAGE=${COVERAGE_RAW%\%}
-            echo "${COVERAGE}%"
-          
+            
+            echo "$service: $COVERAGE%"
             if (( $(echo "$COVERAGE < 70" | bc -l) )); then
               echo "❌ Coverage for $service is below 70% ($COVERAGE%)"
               STATUS=1
+              FAILED_SERVICES="$FAILED_SERVICES $service"
+            else
+              echo "✅ $service: $COVERAGE%"
             fi
           done
           echo "========================================="
@@ -114,5 +117,8 @@ jobs:
       - name: Fail if coverage check did not pass
         if: steps.coverage.outputs.failed != '0'
         run: |
-          echo "Some services did not meet the minimum 70% coverage requirement."
+          echo "Los siguientes servicios no cumplen el 70% de cobertura mínima:"
+          for service in ${{ steps.coverage.outputs.failed_services }}; do
+            echo "  - $service"
+          done
           exit 1

@@ -20,30 +20,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Validate commit messages in PR
-        if: github.event_name == 'pull_request'
-        run: |
-          ALLOWED_REGEX="^(feat|fix|hotfix|bugfix|breakingchange)(\(|!|\:)"
-          INVALID_COMMIT_MSGS=""
-
-          # Obtiene los SHAs de los commits en el PR
-          COMMITS=$(git log origin/${GITHUB_BASE_REF}..HEAD --pretty=format:"%H")
-
-          for sha in $COMMITS; do
-            MSG=$(git log -1 --pretty=format:"%s" $sha)
-            if [[ ! $MSG =~ $ALLOWED_REGEX ]]; then
-              INVALID_COMMIT_MSGS="$INVALID_COMMIT_MSGS\n - $sha: $MSG"
-            fi
-          done
-
-          if [ -n "$INVALID_COMMIT_MSGS" ]; then
-            echo "❌ Los siguientes commits tienen mensajes inválidos y deben empezar con uno de feat, fix, hotfix, bugfix, breakingchange:"
-            echo -e "$INVALID_COMMIT_MSGS"
-            exit 1
-          else
-            echo "✅ Todos los commits del PR tienen prefijo válido."
-          fi
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

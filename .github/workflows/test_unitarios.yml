@@ -85,7 +85,8 @@ jobs:
             service=$(echo $report | sed 's/pytest_output_\(.*\)\.txt/\1/')
             echo -n "$service: "
             # Extraemos el coverage de la línea TOTAL
-            COVERAGE_RAW=$(grep TOTAL $report | awk '{print $(NF-1)}')
+            COVERAGE_RAW=$(grep TOTAL $report | awk '{print $4}')
+            COVERAGE=${COVERAGE_RAW%\%}
             if [[ $COVERAGE_RAW == "" ]]; then
               echo "No coverage found"
               STATUS=1

@@ -112,7 +112,7 @@ jobs:
           path: coverage-reports/
 
       - name: Fail if coverage check did not pass
-        if: steps.coverage.outputs.failed != 0
+        if: steps.coverage.outputs.failed != '0'
         run: |
           echo "Some services did not meet the minimum 70% coverage requirement."
           exit 1

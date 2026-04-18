@@ -24,34 +24,38 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run tests per service
+      - name: Run tests per service and check coverage
         run: |
           echo "Preparing services list..."
-
+          
           if [ -n "${{ github.event.inputs.service }}" ]; then
             SERVICES="${{ github.event.inputs.service }}"
           else
             SERVICES=$(cat test.txt)
           fi
-
+          
+          mkdir -p coverage-reports
+          
+          STATUS=0
+          
           for service in $SERVICES
           do
             echo "=============================="
             echo "Testing service: $service"
             echo "=============================="
-
+          
             SERVICE_PATH="services/$service"
-
+          
             if [ -d "$SERVICE_PATH" ]; then
               cd $SERVICE_PATH
-
+          
               echo "Creating virtual environment..."
               python -m venv venv
               source venv/bin/activate
-
+          
               echo "Installing dependencies..."
               python -m pip install --upgrade pip
-
+          
               if [ -f "requirements.txt" ]; then
                 pip install -r requirements.txt
               fi
@@ -59,18 +63,20 @@ jobs:
                 pip install -r requirements-dev.txt
               fi
               pip install pytest pytest-cov
-
-              echo "Running tests..."
-              pytest --cov=. --cov-report=term-missing > ../../pytest_output_$service.txt
-
-
+          
+              echo "Running tests with coverage and HTML report..."
+              pytest --cov=. --cov-report=term-missing --cov-report=html > ../../pytest_output_$service.txt
+          
+              # Mueve el HTML coverage a una carpeta común para los artifacts
+              mv htmlcov ../../coverage-reports/htmlcov-$service
+          
               deactivate
               cd - > /dev/null
             else
               echo "❌ Service $service not found!"
               exit 1
             fi
-
+          
           done
           
           echo ""
@@ -78,7 +84,30 @@ jobs:
           for report in pytest_output_*.txt; do
             service=$(echo $report | sed 's/pytest_output_\(.*\)\.txt/\1/')
             echo -n "$service: "
-            # imprimir solo la línea de TOTAL con porcentaje
-            grep TOTAL $report | awk '{print $(NF-1)" "$(NF)}'
+            # Extraemos el coverage de la línea TOTAL
+            COVERAGE_RAW=$(grep TOTAL $report | awk '{print $(NF-1)}')
+            if [[ $COVERAGE_RAW == "" ]]; then
+              echo "No coverage found"
+              STATUS=1
+              continue
+            fi
+            COVERAGE=${COVERAGE_RAW%\%}
+            echo "${COVERAGE}%"
+          
+            if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+              echo "❌ Coverage for $service is below 70% ($COVERAGE%)"
+              STATUS=1
+            fi
           done
           echo "========================================="
+          
+          if [ $STATUS -ne 0 ]; then
+            echo "Some services did not meet the minimum 70% coverage requirement."
+            exit 1
+          fi
+
+      - name: Upload coverage reports as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage-reports/

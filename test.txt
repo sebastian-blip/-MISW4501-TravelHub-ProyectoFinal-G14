@@ -1,1 +1,2 @@
 service-core
+service-external

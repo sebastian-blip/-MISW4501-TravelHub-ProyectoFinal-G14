@@ -25,6 +25,7 @@ jobs:
           python-version: "3.11"
 
       - name: Run tests per service and check coverage
+        id: coverage
         run: |
           echo "Preparing services list..."
           
@@ -102,7 +103,7 @@ jobs:
           done
           echo "========================================="
           
-          echo "::set-output name=failed::$STATUS"
+          echo "failed=$STATUS" >> $GITHUB_OUTPUT
 
       - name: Upload coverage reports as artifact
         uses: actions/upload-artifact@v4

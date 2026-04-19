@@ -4,7 +4,7 @@ Envía mensajes de prueba a service-test y recibe confirmación.
 """
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
@@ -48,7 +48,7 @@ async def test_kafka_aws_connection(request: TestMessageRequest):
     """
     try:
         correlation_id = str(uuid.uuid4())
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         
         await publish_test_message(
             message=request.message,
@@ -91,5 +91,5 @@ async def test_kafka_health():
         "status": "ok",
         "kafka_enabled": True,
         "test_endpoint_available": True,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }

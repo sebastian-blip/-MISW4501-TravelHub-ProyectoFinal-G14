@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from mediatr import Mediator
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from accommodation_service.queries.accommodation_queries import (
     SearchAccommodationsQuery,
@@ -24,8 +24,7 @@ class RoomAmenityOut(BaseModel):
     name: str
     icon: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RoomTypeAvailabilityOut(BaseModel):
@@ -41,8 +40,7 @@ class RoomTypeAvailabilityOut(BaseModel):
     minimum_stay: int
     amenities: List[RoomAmenityOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AccommodationSearchResultOut(BaseModel):
@@ -57,8 +55,7 @@ class AccommodationSearchResultOut(BaseModel):
     check_out_time: str
     available_room_types: List[RoomTypeAvailabilityOut]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 def get_mediator() -> Mediator:
@@ -140,8 +137,7 @@ class HotelSummaryOut(BaseModel):
     total_reviews: int
     active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HotelAvailabilityOut(BaseModel):
@@ -157,8 +153,7 @@ class HotelAvailabilityOut(BaseModel):
     nights: int
     available_room_types: List[RoomTypeAvailabilityOut]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CityInfoOut(BaseModel):
@@ -167,8 +162,7 @@ class CityInfoOut(BaseModel):
     country_id: UUID
     hotel_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 @router.get("/hotels", response_model=List[HotelSummaryOut])

@@ -1,5 +1,19 @@
-# Ejemplo de docker-compose para despliegue en AWS
-# Ajusta las variables y rutas según tu entorno
+# AWS-style stack (MSK + certs + service-core + service-external).
+#
+# If build fails with "containerd-stargz-grpc" / "failed to stat parent": see troubleshooting
+# at the top of docker-compose.yml (turn off containerd image store, restart Docker, prune).
+#
+# service-core ignores env DATABASE_URL; it builds the URL from POSTGRES_* (database.py).
+# Set KAFKA_PASSWORD and POSTGRES_* in the shell or root `.env` before `docker compose up`.
+#
+# Certificates: one host folder + in-container PEM path per service (defaults match repo layout).
+#   service-core:    CORE_KAFKA_CERTS_HOST_PATH  (default ./services/service-core/certs)
+#                    CORE_KAFKA_CA_PATH          (default /app/certs/ca-cert.pem)
+#   service-external: EXTERNAL_KAFKA_CERTS_HOST_PATH (default ./services/service-external/certs)
+#                     EXTERNAL_KAFKA_CA_PATH         (default /app/certs/ca-cert.pem)
+# Docker Desktop Mac: each host path must exist and be allowed under File Sharing.
+
+name: travelhub-aws-example
 
 services:
   service-core:
@@ -7,35 +21,33 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - KAFKA_LOCAL=false
-      - KAFKA_BOOTSTRAP_SERVERS=18.217.144.193:9093
-      - KAFKA_USERNAME=appclient
-      - KAFKA_PASSWORD=${KAFKA_PASSWORD}
-      - KAFKA_CA_PATH=/app/certs/ca-cert.pem
-      - KAFKA_ENABLED=true
-      - DATABASE_URL=${DATABASE_URL}
+      KAFKA_LOCAL: "false"
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-18.217.144.193:9093}
+      KAFKA_USERNAME: ${KAFKA_USERNAME:-appclient}
+      KAFKA_PASSWORD: ${KAFKA_PASSWORD:?Set KAFKA_PASSWORD}
+      KAFKA_CA_PATH: ${CORE_KAFKA_CA_PATH:-/app/certs/ca-cert.pem}
+      KAFKA_ENABLED: "true"
+      POSTGRES_HOST: ${POSTGRES_HOST:?Set POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-travelhub}
     volumes:
-      # Montar certificados desde el host o desde /service
-      - /service:/app/certs:ro
-      # O si los tienes en otra ruta:
-      # - ./certs:/app/certs:ro
+      - ${CORE_KAFKA_CERTS_HOST_PATH:-./services/service-core/certs}:/app/certs:ro
     restart: unless-stopped
 
-  service-test:
-    build: ./services/service-test
+  service-external:
+    build: ./services/service-external
     ports:
-      - "8001:8001"
+      - "8002:8000"
     environment:
-      - KAFKA_LOCAL=false
-      - KAFKA_BOOTSTRAP_SERVERS=18.217.144.193:9093
-      - KAFKA_USERNAME=appclient
-      - KAFKA_PASSWORD=${KAFKA_PASSWORD}
-      - KAFKA_CA_PATH=/app/certs/ca-cert.pem
-      - KAFKA_ENABLED=true
-      - DATABASE_URL=${DATABASE_URL}
+      KAFKA_LOCAL: "false"
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-18.217.144.193:9093}
+      KAFKA_USERNAME: ${KAFKA_USERNAME:-appclient}
+      KAFKA_PASSWORD: ${KAFKA_PASSWORD:?Set KAFKA_PASSWORD}
+      KAFKA_CA_PATH: ${EXTERNAL_KAFKA_CA_PATH:-/app/certs/ca-cert.pem}
+      KAFKA_ENABLED: "true"
+      PMS_ADAPTER_STRATEGY: ${PMS_ADAPTER_STRATEGY:-pms}
     volumes:
-      # Montar certificados desde el host o desde /service
-      - /service:/app/certs:ro
-      # O si los tienes en otra ruta:
-      # - ./certs:/app/certs:ro
+      - ${EXTERNAL_KAFKA_CERTS_HOST_PATH:-./services/service-external/certs}:/app/certs:ro
     restart: unless-stopped

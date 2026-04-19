@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -125,4 +127,5 @@ async def publish_test_message(
 
     await _producer.send_and_wait(TOPIC_AWS_TEST, payload)
     logging.info(
-        f"[service-core Producer] mensaje de prueba AWS enviado → correlation_id={correlation_id}, priority={priority}")
+        f"[service-core Producer] mensaje de prueba AWS enviado → correlation_id={correlation_id}, priority={priority}"
+    )

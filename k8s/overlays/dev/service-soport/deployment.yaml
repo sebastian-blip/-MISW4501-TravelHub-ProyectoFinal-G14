@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: service-soport
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: service-soport
@@ -14,32 +14,39 @@ spec:
       labels:
         app.kubernetes.io/name: service-soport
     spec:
+      serviceAccountName: service-soport-sa
+
+      volumes:
+        - name: kafka-ca
+          emptyDir: {}
+
+
       containers:
         - name: service-soport
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:b86fdc33425cdde078204949ee90aed462b49b58
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:v2
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 3000
-          env:
-            - name: POSTGRES_DB
-              value: "travelhub"
 
           envFrom:
             - secretRef:
                 name: travelhub-postgres
+
           readinessProbe:
             httpGet:
               path: /readyz
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
+
           livenessProbe:
             httpGet:
               path: /healthz
               port: http
             initialDelaySeconds: 15
             periodSeconds: 20
+
           resources:
             requests:
               cpu: "100m"

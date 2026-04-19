@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{core}}/test/kafka-aws"
+  url: "{{local_core}}/test/kafka-aws"
   body:
     type: json
     data: |-

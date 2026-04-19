@@ -1,0 +1,101 @@
+info:
+  name: list hotels
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{core}}/accommodations/hotels?city={{city1}}&min_stars={{min_stars}}&limit={{limit}}&offset={{offset}}"
+  params:
+    - name: city
+      value: "{{city1}}"
+      type: query
+    - name: min_stars
+      value: "{{min_stars}}"
+      type: query
+    - name: limit
+      value: "{{limit}}"
+      type: query
+    - name: offset
+      value: "{{offset}}"
+      type: query
+  auth: inherit
+
+runtime:
+  variables:
+    - name: city
+      value: Bogotá
+    - name: min_stars
+      value: "1"
+    - name: limit
+      value: "50"
+    - name: offset
+      value: "0"
+  scripts:
+    - type: tests
+      code: |-
+        const data = res.getBody();
+
+        // Tests - respuesta general
+        test("Status 200", function() {
+            expect(res.getStatus()).to.equal(200);
+        });
+
+        test("respuesta es array no vacío", function() {
+            expect(data).to.be.an("array").and.not.empty;
+        });
+
+        // Tests - estructura de cada hotel
+        test("cada hotel tiene id", function() {
+            data.forEach(hotel => {
+                expect(hotel.id).to.be.a("string").and.not.empty;
+            });
+        });
+
+        test("cada hotel tiene name", function() {
+            data.forEach(hotel => {
+                expect(hotel.name).to.be.a("string").and.not.empty;
+            });
+        });
+
+        test("cada hotel tiene city", function() {
+            data.forEach(hotel => {
+                expect(hotel.city).to.be.a("string").and.not.empty;
+            });
+        });
+
+        test("cada hotel tiene stars", function() {
+            data.forEach(hotel => {
+                expect(hotel.stars).to.be.a("number");
+            });
+        });
+
+        test("cada hotel tiene rating", function() {
+            data.forEach(hotel => {
+                expect(hotel.rating).to.be.a("string").and.not.empty;
+            });
+        });
+
+        test("cada hotel tiene total_reviews", function() {
+            data.forEach(hotel => {
+                expect(hotel.total_reviews).to.be.a("number");
+            });
+        });
+
+        test("cada hotel tiene active", function() {
+            data.forEach(hotel => {
+                expect(hotel.active).to.be.a("boolean");
+            });
+        });
+
+        test("hoteles activos", function() {
+            data.forEach(hotel => {
+                expect(hotel.active).to.be.true;
+            });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

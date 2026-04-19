@@ -1,0 +1,89 @@
+info:
+  name: get reservation 1
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{core}}/reservations/{{reservation_id}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const data = res.getBody();
+
+        // Tests - respuesta general
+        test("Status 200", function() {
+            expect(res.getStatus()).to.equal(200);
+        });
+
+        test("id existe", function() {
+            expect(data.id).to.be.a("string").and.not.empty;
+        });
+
+        test("hotel_id existe", function() {
+            expect(data.hotel_id).to.be.a("string").and.not.empty;
+        });
+
+        test("room_type_id existe", function() {
+            expect(data.room_type_id).to.be.a("string").and.not.empty;
+        });
+
+        // Tests - fechas y huéspedes
+        test("check_in existe", function() {
+            expect(data.check_in).to.be.a("string").and.not.empty;
+        });
+
+        test("check_out existe", function() {
+            expect(data.check_out).to.be.a("string").and.not.empty;
+        });
+
+        test("guests es número", function() {
+            expect(data.guests).to.be.a("number");
+        });
+
+        // Tests - precios
+        test("base_price existe", function() {
+            expect(data.base_price).to.be.a("string").and.not.empty;
+        });
+
+        test("taxes existe", function() {
+            expect(data.taxes).to.be.a("string").and.not.empty;
+        });
+
+        test("discounts existe", function() {
+            expect(data.discounts).to.be.a("string").and.not.empty;
+        });
+
+        test("total_price existe", function() {
+            expect(data.total_price).to.be.a("string").and.not.empty;
+        });
+
+        test("currency_code es USD", function() {
+            expect(data.currency_code).to.equal("USD");
+        });
+
+        // Tests - estado
+        test("status es pending", function() {
+            expect(data.status).to.equal("pending");
+        });
+
+        test("confirmation_code existe", function() {
+            expect(data.confirmation_code).to.be.a("string").and.not.empty;
+        });
+
+        test("created_at existe", function() {
+            expect(data.created_at).to.be.a("string").and.not.empty;
+        });
+
+        // Capturar variables
+        bru.setEnvVar("reservation_id", data.id);
+        bru.setEnvVar("confirmation_code", data.confirmation_code);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

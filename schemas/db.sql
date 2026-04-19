@@ -212,7 +212,7 @@ CREATE TABLE shopping_carts (
 
 CREATE TABLE reservations (
     id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id              UUID           NOT NULL REFERENCES users(id),
+    user_id              UUID           REFERENCES users(id),
     hotel_id             UUID           NOT NULL REFERENCES hotels(id),
     room_type_id         UUID           NOT NULL REFERENCES room_types(id),
     cart_id              UUID REFERENCES shopping_carts(id),

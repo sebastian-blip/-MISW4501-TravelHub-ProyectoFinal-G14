@@ -7,8 +7,10 @@ from uuid import UUID
 from decimal import Decimal
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncSession
 from mediatr import Mediator
 
 from reservation_service.commands import (
@@ -25,6 +27,14 @@ from reservation_service.queries import (
     ReservationListResponse,
     ReservationResponse,
 )
+from infrastructure.database import get_session
+from domain.models.reservation import Reservation
+from domain.models.reservation_guest import ReservationGuest
+from domain.models.payment import Payment
+from domain.models.payment_transaction import PaymentTransaction
+from domain.models.reservation_status_history import ReservationStatusHistory
+from domain.models.check_in import CheckIn
+from domain.models.hotel_review import HotelReview
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
@@ -188,3 +198,23 @@ async def update_reservation_status(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al actualizar estado: {str(e)}")
+
+
+@router.delete("/all")
+async def delete_all_reservations(session: AsyncSession = Depends(get_session)):
+    """
+    Elimina todas las reservaciones, huéspedes y pagos.
+    """
+    try:
+        await session.execute(delete(ReservationGuest))
+        await session.execute(delete(PaymentTransaction))
+        await session.execute(delete(Payment))
+        await session.execute(delete(ReservationStatusHistory))
+        await session.execute(delete(CheckIn))
+        await session.execute(delete(HotelReview))
+        await session.execute(delete(Reservation))
+        await session.commit()
+        return {"message": "Todas las reservaciones, huéspedes, transacciones, historial de estados y pagos han sido eliminados"}
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al eliminar reservaciones: {str(e)}")

@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{local_core}}/reservation-flow/create"
+  url: "{{core}}/reservation-flow/create"
   body:
     type: json
     data: |-

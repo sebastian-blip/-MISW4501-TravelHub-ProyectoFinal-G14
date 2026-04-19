@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://0.0.0.0:8000/reservations/code/REEMPLAZAR-CODIGO
+  url: "{{core}}/reservations/code/RES730A8987"
   auth: inherit
 
 settings:

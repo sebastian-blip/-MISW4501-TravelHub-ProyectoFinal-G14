@@ -1,0 +1,145 @@
+info:
+  name: create 3
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: "{{core}}/reservation-flow/create"
+  body:
+    type: json
+    data: |-
+      {
+        "hotel_id": "{{hotel_id}}",
+        "room_type_id": "{{room_type_id}}}",
+        "check_in": "2026-05-01",
+        "check_out": "2026-05-05",
+        "guests": 2,
+        "base_price": "500.00",
+        "taxes": "50.00",
+        "discounts": "25.00",
+        "total_price": "525.00",
+        "currency_code": "USD",
+        "primary_guest": {
+          "first_name": "Juan",
+          "last_name": "Pérez",
+          "document_type": "CC",
+          "document_number": "1234567890",
+          "nationality": "COL"
+        },
+        "payment": {
+          "amount": "525.00",
+          "currency_code": "USD",
+          "payment_token": "tok_visa_4242424242424242"
+        },
+        "special_requests": "Habitación con vista al mar"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const roomTypeIds = JSON.parse(bru.getEnvVar("room_type_ids"));
+        const index = parseInt(bru.getEnvVar("room_type_index") || "0");
+
+        bru.setEnvVar("room_type_id", roomTypeIds[index]);
+
+        // Incrementa para la siguiente
+        bru.setEnvVar("room_type_index", String(index + 1));
+    - type: after-response
+      code: |-
+        const data = res.getBody();
+
+        if (data?.result?.reservation_id) {
+            bru.setEnvVar("reservation_id", data.result.reservation_id);
+            bru.setEnvVar("confirmation_code", data.result.confirmation_code);
+            console.log("reservation_id:", data.result.reservation_id);
+            console.log("confirmation_code:", data.result.confirmation_code);
+        }
+    - type: tests
+      code: |-
+        const data = res.getBody();
+
+        // Capturar variables
+        if (data?.result?.reservation_id) {
+            bru.setEnvVar("reservation_id", data.result.reservation_id);
+            bru.setEnvVar("confirmation_code", data.result.confirmation_code);
+        }
+
+        // Tests - respuesta general
+        test("Status 200", function() {
+            expect(res.getStatus()).to.equal(200);
+        });
+
+        test("completed is true", function() {
+            expect(data.completed).to.be.true;
+        });
+
+        test("step is create", function() {
+            expect(data.step).to.equal("create");
+        });
+
+        test("history contiene validate y create", function() {
+            expect(data.history).to.include("validate");
+            expect(data.history).to.include("create");
+        });
+
+        // Tests - result
+        test("result.success is true", function() {
+            expect(data.result.success).to.be.true;
+        });
+
+        test("result.proceed is true", function() {
+            expect(data.result.proceed).to.be.true;
+        });
+
+        test("result.status es pending", function() {
+            expect(data.result.status).to.equal("pending");
+        });
+
+        test("reservation_id existe", function() {
+            expect(data.result.reservation_id).to.be.a("string").and.not.empty;
+        });
+
+        test("confirmation_code existe", function() {
+            expect(data.result.confirmation_code).to.be.a("string").and.not.empty;
+        });
+
+        // Tests - hotel
+        test("hotel.id existe", function() {
+            expect(data.result.hotel.id).to.be.a("string").and.not.empty;
+        });
+
+        test("hotel tiene stars y rating", function() {
+            expect(data.result.hotel.stars).to.be.a("number");
+            expect(data.result.hotel.rating).to.be.a("string");
+        });
+
+        // Tests - pricing
+        test("pricing.nights es 4", function() {
+            expect(data.result.pricing.nights).to.equal(4);
+        });
+
+        test("pricing.total existe", function() {
+            expect(data.result.pricing.total).to.be.a("string").and.not.empty;
+        });
+
+        test("pricing.currency_code es USD", function() {
+            expect(data.result.pricing.currency_code).to.equal("USD");
+        });
+
+        // Tests - fechas
+        test("check_in existe", function() {
+            expect(data.result.check_in).to.be.a("string").and.not.empty;
+        });
+
+        test("check_out existe", function() {
+            expect(data.result.check_out).to.be.a("string").and.not.empty;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,6 +1,6 @@
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from decimal import Decimal
 from uuid import UUID
 
@@ -19,6 +19,7 @@ from domain.models.payment import Payment
 from domain.models.hotel import Hotel
 from domain.models.room_type import RoomType
 from sqlalchemy import select
+from domain.models.inventory_calendar import InventoryCalendar
 
 
 def generate_confirmation_code() -> str:
@@ -65,6 +66,23 @@ async def handle_create_reservation(command: CreateReservationCommand) -> Create
         # Calcular precio por noche
         price_per_night = total / nights if nights > 0 else total
         
+        # Calcular noches para inventario
+        nights_inventory = max(1, (command.check_out - command.check_in).days)
+        dates = [command.check_in + timedelta(days=d) for d in range(nights_inventory)]
+        
+        # Verificar y descontar inventario noche por noche (con lock)
+        for d in dates:
+            inv_result = await session.execute(
+                select(InventoryCalendar)
+                .where(InventoryCalendar.room_type_id == command.room_type_id)
+                .where(InventoryCalendar.date == d)
+                .with_for_update()
+            )
+            inv = inv_result.scalar_one_or_none()
+            if not inv or inv.available_units < 1:
+                raise ValueError(f"No hay disponibilidad para la fecha {d}")
+            inv.available_units -= 1
+        
         # Crear la reservación
         reservation = await repo.create(
             user_id=command.user_id,
@@ -109,6 +127,7 @@ async def handle_create_reservation(command: CreateReservationCommand) -> Create
         session.add(payment)
         
         await session.commit()
+        await session.refresh(reservation)
 
     logging.info(f"[Reservation] Creada: {reservation.confirmation_code} para usuario {reservation.user_id}")
 

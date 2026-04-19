@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Validate commit messages
         run: |
@@ -17,20 +19,41 @@ jobs:
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
             HEAD_SHA="${{ github.event.pull_request.head.sha }}"
             echo "Validando commits en PR (${BASE_SHA}..${HEAD_SHA})"
-            RANGE="${BASE_SHA}..${HEAD_SHA}"
           else
             BASE_SHA="${{ github.event.before }}"
             HEAD_SHA="${{ github.event.after }}"
             echo "Validando commits en push (${BASE_SHA}..${HEAD_SHA})"
-            RANGE="${BASE_SHA}..${HEAD_SHA}"
           fi
 
           git fetch --unshallow || true
-          git fetch --all
+          git fetch --all --tags
 
           ALLOWED_REGEX="^(feat|fix|hotfix|bugfix|breakingchange)(\(|!|\:)"
           INVALID_COMMIT_MSGS=""
 
+          # Handle cases where BASE_SHA is not present (new branch, force-push, shallow history).
+          if ! git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+            echo "HEAD_SHA no disponible en el checkout; usando HEAD"
+            HEAD_SHA="HEAD"
+          fi
+
+          if [ -z "${BASE_SHA}" ] || [ "${BASE_SHA}" = "0000000000000000000000000000000000000000" ]; then
+            echo "BASE_SHA vacío/zero; validando solo HEAD_SHA (${HEAD_SHA})"
+            RANGE="${HEAD_SHA}"
+          elif git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            RANGE="${BASE_SHA}..${HEAD_SHA}"
+          else
+            echo "BASE_SHA no disponible (${BASE_SHA}); intentando traerlo del remoto"
+            git fetch origin "${BASE_SHA}" || true
+            if git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+              RANGE="${BASE_SHA}..${HEAD_SHA}"
+            else
+              echo "No se pudo resolver BASE_SHA; validando solo HEAD_SHA (${HEAD_SHA})"
+              RANGE="${HEAD_SHA}"
+            fi
+          fi
+
+          echo "Rango efectivo: ${RANGE}"
           COMMITS=$(git log $RANGE --pretty=format:"%H")
 
           for sha in $COMMITS; do

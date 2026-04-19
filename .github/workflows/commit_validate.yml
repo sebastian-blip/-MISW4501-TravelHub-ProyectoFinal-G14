@@ -25,7 +25,12 @@ jobs:
             echo "Validando commits en push (${BASE_SHA}..${HEAD_SHA})"
           fi
 
-          git fetch --unshallow || true
+          # Solo intentar unshallow si el clone es shallow (con fetch-depth: 0 no lo es → evita fatal).
+          if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ]; then
+            git fetch --unshallow || true
+          elif [ -f .git/shallow ]; then
+            git fetch --unshallow || true
+          fi
           git fetch --all --tags
 
           ALLOWED_REGEX="^(feat|fix|hotfix|bugfix|breakingchange)(\(|!|\:)"
@@ -54,10 +59,16 @@ jobs:
           fi
 
           echo "Rango efectivo: ${RANGE}"
-          COMMITS=$(git log $RANGE --pretty=format:"%H")
+          # --first-parent: no validar todo el historial traído por merges desde main u otras ramas.
+          COMMITS=$(git log $RANGE --first-parent --pretty=format:"%H")
 
           for sha in $COMMITS; do
             MSG=$(git log -1 --pretty=format:"%s" $sha)
+            # Commits de merge estándar de Git (Merge branch '…') no siguen el prefijo feat|fix|…
+            if [[ "$MSG" =~ ^Merge[[:space:]] ]]; then
+              echo "Omitiendo merge: $sha $MSG"
+              continue
+            fi
             if [[ ! $MSG =~ $ALLOWED_REGEX ]]; then
               INVALID_COMMIT_MSGS="$INVALID_COMMIT_MSGS\n - $sha: $MSG"
             fi

@@ -5,10 +5,10 @@ info:
 
 http:
   method: GET
-  url: "{{local_core}}/accommodations/search?city={{city}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
+  url: "{{core}}/accommodations/search?city={{city1}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
   params:
     - name: city
-      value: "{{city}}"
+      value: "{{city1}}"
       type: query
     - name: check_in
       value: "{{check_in}}"
@@ -23,12 +23,6 @@ http:
 
 runtime:
   variables:
-    - name: city
-      value: Bogotá
-    - name: check_in
-      value: 2026-05-01
-    - name: check_out
-      value: 2026-05-05
     - name: guests
       value: "2"
 

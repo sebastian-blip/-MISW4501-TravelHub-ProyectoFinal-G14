@@ -1,0 +1,69 @@
+info:
+  name: list cities
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{core}}/accommodations/cities"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const data = res.getBody();
+
+        // Tests - respuesta general
+        test("Status 200", function() {
+            expect(res.getStatus()).to.equal(200);
+        });
+
+        test("respuesta es array no vacío", function() {
+            expect(data).to.be.an("array").and.not.empty;
+        });
+
+        test("contiene 6 ciudades", function() {
+            expect(data).to.have.lengthOf(6);
+        });
+
+        // Tests - estructura de cada item
+        test("cada item tiene city", function() {
+            data.forEach(item => {
+                expect(item.city).to.be.a("string").and.not.empty;
+            });
+        });
+
+        test("cada item tiene country_id", function() {
+            data.forEach(item => {
+                expect(item.country_id).to.be.a("string").and.not.empty;
+            });
+        });
+
+        test("cada item tiene hotel_count", function() {
+            data.forEach(item => {
+                expect(item.hotel_count).to.be.a("number");
+            });
+        });
+
+        // Tests - ciudades esperadas
+        test("contiene Bogotá", function() {
+            const cities = data.map(i => i.city);
+            expect(cities).to.include("Bogotá");
+        });
+
+        test("contiene Buenos Aires", function() {
+            const cities = data.map(i => i.city);
+            expect(cities).to.include("Buenos Aires");
+        });
+
+        test("contiene Ciudad de México", function() {
+            const cities = data.map(i => i.city);
+            expect(cities).to.include("Ciudad de México");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

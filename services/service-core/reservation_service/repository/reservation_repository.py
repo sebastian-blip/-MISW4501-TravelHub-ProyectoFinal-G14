@@ -82,8 +82,6 @@ class ReservationRepository:
             confirmation_code=confirmation_code,
         )
         self.session.add(reservation)
-        await self.session.commit()
-        await self.session.refresh(reservation)
         return reservation
 
     async def update_status(self, reservation_id: UUID, status: str) -> Optional[Reservation]:
@@ -95,6 +93,4 @@ class ReservationRepository:
             reservation.status = status
             from datetime import datetime
             reservation.updated_at = datetime.utcnow()
-            await self.session.commit()
-            await self.session.refresh(reservation)
         return reservation

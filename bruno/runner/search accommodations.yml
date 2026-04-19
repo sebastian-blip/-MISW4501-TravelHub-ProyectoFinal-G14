@@ -1,0 +1,138 @@
+info:
+  name: search accommodations
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{core}}/accommodations/search?city={{city1}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
+  params:
+    - name: city
+      value: "{{city1}}"
+      type: query
+    - name: check_in
+      value: "{{check_in}}"
+      type: query
+    - name: check_out
+      value: "{{check_out}}"
+      type: query
+    - name: guests
+      value: "{{guests}}"
+      type: query
+  auth: inherit
+
+runtime:
+  variables:
+    - name: guests
+      value: "2"
+  scripts:
+    - type: after-response
+      code: |-
+        const data = res.getBody();
+        const hotel = data[0];
+
+        bru.setEnvVar("hotel_id", hotel.hotel_id);
+
+        const roomTypeIds = hotel.available_room_types.map(r => r.id);
+        bru.setEnvVar("room_type_ids", JSON.stringify(roomTypeIds));
+
+        // Inicializa el índice
+        bru.setEnvVar("room_type_index", "0");
+    - type: tests
+      code: |-
+        const data = res.getBody();
+
+        // Tests - respuesta general
+        test("Status 200", function() {
+            expect(res.getStatus()).to.equal(200);
+        });
+
+        test("respuesta es array no vacío", function() {
+            expect(data).to.be.an("array").and.not.empty;
+        });
+
+        // Tests - estructura hotel
+        test("hotel tiene hotel_id", function() {
+            expect(data[0].hotel_id).to.be.a("string").and.not.empty;
+        });
+
+        test("hotel tiene hotel_name", function() {
+            expect(data[0].hotel_name).to.be.a("string").and.not.empty;
+        });
+
+        test("hotel tiene city", function() {
+            expect(data[0].city).to.be.a("string").and.not.empty;
+        });
+
+        test("hotel tiene stars", function() {
+            expect(data[0].stars).to.be.a("number");
+        });
+
+        test("hotel tiene rating", function() {
+            expect(data[0].rating).to.be.a("string").and.not.empty;
+        });
+
+        test("hotel tiene check_in_time y check_out_time", function() {
+            expect(data[0].check_in_time).to.be.a("string").and.not.empty;
+            expect(data[0].check_out_time).to.be.a("string").and.not.empty;
+        });
+
+        // Tests - available_room_types
+        test("available_room_types es array no vacío", function() {
+            expect(data[0].available_room_types).to.be.an("array").and.not.empty;
+        });
+
+        test("cada room_type tiene id y name", function() {
+            data[0].available_room_types.forEach(room => {
+                expect(room.id).to.be.a("string").and.not.empty;
+                expect(room.name).to.be.a("string").and.not.empty;
+            });
+        });
+
+        test("cada room_type tiene price_per_night y total_price", function() {
+            data[0].available_room_types.forEach(room => {
+                expect(room.price_per_night).to.be.a("string").and.not.empty;
+                expect(room.total_price).to.be.a("string").and.not.empty;
+            });
+        });
+
+        test("cada room_type tiene currency_code USD", function() {
+            data[0].available_room_types.forEach(room => {
+                expect(room.currency_code).to.equal("USD");
+            });
+        });
+
+        test("cada room_type tiene max_capacity", function() {
+            data[0].available_room_types.forEach(room => {
+                expect(room.max_capacity).to.be.a("number");
+            });
+        });
+
+        test("cada room_type tiene amenities no vacío", function() {
+            data[0].available_room_types.forEach(room => {
+                expect(room.amenities).to.be.an("array").and.not.empty;
+            });
+        });
+
+        test("cada amenity tiene name e icon", function() {
+            data[0].available_room_types.forEach(room => {
+                room.amenities.forEach(amenity => {
+                    expect(amenity.name).to.be.a("string").and.not.empty;
+                    expect(amenity.icon).to.be.a("string").and.not.empty;
+                });
+            });
+        });
+
+        // Capturar variables para siguientes requests
+        const hotel = data[0];
+        bru.setEnvVar("hotel_id", hotel.hotel_id);
+        const roomTypeIds = hotel.available_room_types.map(r => r.id);
+        bru.setEnvVar("room_type_ids", JSON.stringify(roomTypeIds));
+        bru.setEnvVar("room_type_index", "0");
+        bru.setEnvVar("room_type_id", roomTypeIds[0]);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

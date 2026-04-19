@@ -74,4 +74,5 @@ class CurrencyExchangeAdapter(CurrencyExchangePort):
             to_currency=request.to_currency,
             converted_amount=converted,
             rate=rate_row.rate,
+            as_of_iso=rate_row.as_of_iso,
         )

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from decimal import Decimal
 
+from domains.currency.currency_codes import fx_provider_code
 from domains.currency.ports.currency_exchange_port import CurrencyExchangePort
 from domains.currency.contracts import (
     ConversionRequest,
@@ -23,7 +24,9 @@ class MockCurrencyAdapter(CurrencyExchangePort):
     """In-memory stub with fixed rates for local development and testing."""
 
     def get_rate(self, query: ExchangeRateQuery) -> ExchangeRateResult:
-        key = f"{query.base_currency.upper()}:{query.quote_currency.upper()}"
+        base_fx = fx_provider_code(query.base_currency)
+        quote_fx = fx_provider_code(query.quote_currency)
+        key = f"{base_fx}:{quote_fx}"
         rate = _MOCK_RATES.get(key, Decimal("1.00"))
         return ExchangeRateResult(
             base_currency=query.base_currency,
@@ -43,4 +46,5 @@ class MockCurrencyAdapter(CurrencyExchangePort):
             to_currency=request.to_currency,
             converted_amount=converted,
             rate=rate_row.rate,
+            as_of_iso=rate_row.as_of_iso,
         )

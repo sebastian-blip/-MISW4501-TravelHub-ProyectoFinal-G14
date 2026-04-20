@@ -40,7 +40,7 @@ class ListReservationsByUserHandler:
     async def handle(self, query: ListReservationsByUserQuery) -> ReservationListResponse:
         async with async_session_maker() as session:
             repository = ReservationRepository(session)
-            reservations = await repository.list_by_user(
+            reservations = await repository.list_by_user_or_guest(
                 query.user_id, limit=query.limit, offset=query.offset
             )
             items = [ReservationResponse.from_orm(r) for r in reservations]

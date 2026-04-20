@@ -207,7 +207,7 @@ class TestListReservationsByUserHandler:
             mock_session_maker.return_value.__aexit__ = AsyncMock(return_value=False)
 
             mock_repo = AsyncMock()
-            mock_repo.list_by_user.return_value = mock_reservations
+            mock_repo.list_by_user_or_guest.return_value = mock_reservations
             mock_repo_class.return_value = mock_repo
 
             from reservation_service.queries.get_reservation_handler import ListReservationsByUserHandler
@@ -237,7 +237,7 @@ class TestListReservationsByUserHandler:
             mock_session_maker.return_value.__aexit__ = AsyncMock(return_value=False)
 
             mock_repo = AsyncMock()
-            mock_repo.list_by_user.return_value = []
+            mock_repo.list_by_user_or_guest.return_value = []
             mock_repo_class.return_value = mock_repo
 
             from reservation_service.queries.get_reservation_handler import ListReservationsByUserHandler

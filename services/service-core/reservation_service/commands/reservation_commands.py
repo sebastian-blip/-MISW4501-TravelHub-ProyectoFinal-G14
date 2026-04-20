@@ -20,6 +20,7 @@ class CreateReservationCommand:
     total_price: Decimal = Decimal("0.00")
     currency_code: str = "USD"
     user_id: Optional[UUID] = None
+    user_guest_id: Optional[UUID] = None
     cart_id: Optional[UUID] = None
     cancellation_policy: Optional[str] = None
     special_requests: Optional[str] = None

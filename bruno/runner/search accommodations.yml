@@ -5,7 +5,10 @@ info:
 
 http:
   method: GET
-  url: "{{core}}/accommodations/search?city={{city1}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
+  url: "{{local_core}}/accommodations/search?city={{city1}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
+  headers:
+    - name: X-Guest-Id
+      value: e6c08603-969f-488a-a858-5a626dff8c5d
   params:
     - name: city
       value: "{{city1}}"

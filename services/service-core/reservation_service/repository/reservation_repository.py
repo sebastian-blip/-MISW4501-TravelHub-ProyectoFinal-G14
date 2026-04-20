@@ -3,7 +3,7 @@ from uuid import UUID
 from decimal import Decimal
 from datetime import date
 
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from domain.models.reservation import Reservation
 
@@ -29,6 +29,17 @@ class ReservationRepository:
         statement = (
             select(Reservation)
             .where(Reservation.user_id == user_id)
+            .order_by(desc(Reservation.created_at))
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(statement)
+        return result.scalars().all()
+
+    async def list_by_user_or_guest(self, user_id: UUID, limit: int = 10, offset: int = 0) -> List[Reservation]:
+        statement = (
+            select(Reservation)
+            .where(or_(Reservation.user_id == user_id, Reservation.user_guest_id == user_id))
             .order_by(desc(Reservation.created_at))
             .limit(limit)
             .offset(offset)
@@ -63,9 +74,11 @@ class ReservationRepository:
         cancellation_policy: Optional[str] = None,
         special_requests: Optional[str] = None,
         confirmation_code: Optional[str] = None,
+        user_guest_id: Optional[UUID] = None,
     ) -> Reservation:
         reservation = Reservation(
             user_id=user_id,
+            user_guest_id=user_guest_id,
             hotel_id=hotel_id,
             room_type_id=room_type_id,
             cart_id=cart_id,
@@ -82,6 +95,7 @@ class ReservationRepository:
             confirmation_code=confirmation_code,
         )
         self.session.add(reservation)
+        await self.session.flush()
         return reservation
 
     async def update_status(self, reservation_id: UUID, status: str) -> Optional[Reservation]:

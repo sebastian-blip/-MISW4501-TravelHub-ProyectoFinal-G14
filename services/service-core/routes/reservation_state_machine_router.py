@@ -5,7 +5,7 @@ Sin dinamismo, todo es directo y fácil de seguir.
 from typing import Optional
 from datetime import date
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Header
 from pydantic import BaseModel, Field
 
 from state_machine.simple_reservation_flow import SimpleReservationFlow
@@ -52,7 +52,7 @@ class CancelRequest(BaseModel):
 
 
 @router.post("/create")
-async def create_reservation(request: CreateRequest):
+async def create_reservation(request: CreateRequest, x_guest_id: str = Header(..., alias="X-Guest-Id")):
     """
     Flujo: validate → create.
     
@@ -60,6 +60,8 @@ async def create_reservation(request: CreateRequest):
     2. Si no existe, la crea con guest principal y pago
     3. Retorna confirmation_code o error
     """
+
+
     try:
         flow = SimpleReservationFlow()
         flow.set_data(
@@ -79,6 +81,7 @@ async def create_reservation(request: CreateRequest):
             cart_id=request.cart_id,
             cancellation_policy=request.cancellation_policy,
             special_requests=request.special_requests,
+            user_guest_id=x_guest_id,
         )
         
         result = await flow.run_create_flow()

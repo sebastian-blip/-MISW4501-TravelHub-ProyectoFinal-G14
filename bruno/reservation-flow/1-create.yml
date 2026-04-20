@@ -5,7 +5,10 @@ info:
 
 http:
   method: POST
-  url: "{{core}}/reservation-flow/create"
+  url: "{{local_core}}/reservation-flow/create"
+  headers:
+    - name: X-Guest-Id
+      value: e6c08603-969f-488a-a858-5a626dff8c5d
   body:
     type: json
     data: |-

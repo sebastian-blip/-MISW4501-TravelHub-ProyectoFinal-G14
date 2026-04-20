@@ -54,19 +54,21 @@ class TestAccommodationRouter:
         mock_results = [result]
 
         with patch("routes.accommodation_router.Mediator.send", new_callable=AsyncMock, return_value=mock_results):
-            response = client.get("/accommodations/search?city=Bogotá&check_in=2026-05-01&check_out=2026-05-05&guests=2")
+            response = client.get("/accommodations/search?city=Bogotá&check_in=2026-05-01&check_out=2026-05-05&guests=2", headers={"X-Guest-Id": "guest-123"})
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["hotel_name"] == "Hotel Test"
-        assert data[0]["city"] == "Bogotá"
-        assert len(data[0]["available_room_types"]) == 1
+        assert "user_session" in data
+        assert "result" in data
+        assert len(data["result"]) == 1
+        assert data["result"][0]["hotel_name"] == "Hotel Test"
+        assert data["result"][0]["city"] == "Bogotá"
+        assert len(data["result"][0]["available_room_types"]) == 1
 
     def test_search_accommodations_bad_request(self, client):
         """Test búsqueda con fechas inválidas retorna 400."""
         with patch("routes.accommodation_router.Mediator.send", new_callable=AsyncMock, side_effect=ValueError("check_out debe ser posterior")):
-            response = client.get("/accommodations/search?city=Bogotá&check_in=2026-05-10&check_out=2026-05-05&guests=2")
+            response = client.get("/accommodations/search?city=Bogotá&check_in=2026-05-10&check_out=2026-05-05&guests=2", headers={"X-Guest-Id": "guest-123"})
 
         assert response.status_code == 400
         assert "check_out" in response.json()["detail"]

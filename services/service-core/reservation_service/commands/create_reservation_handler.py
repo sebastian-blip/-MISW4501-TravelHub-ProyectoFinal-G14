@@ -86,6 +86,7 @@ async def handle_create_reservation(command: CreateReservationCommand) -> Create
         # Crear la reservación
         reservation = await repo.create(
             user_id=command.user_id,
+            user_guest_id=command.user_guest_id,
             hotel_id=command.hotel_id,
             room_type_id=command.room_type_id,
             check_in=command.check_in,

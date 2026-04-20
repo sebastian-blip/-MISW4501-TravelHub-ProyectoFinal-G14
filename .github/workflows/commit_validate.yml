@@ -28,7 +28,7 @@ jobs:
           git fetch --unshallow || true
           git fetch --all
 
-          ALLOWED_REGEX="^(feat|fix|hotfix|bugfix|breakingchange)(\(|!|\:)"
+          ALLOWED_REGEX="^(feature|feat|fix|hotfix|bugfix|breakingchange)(\(|!|\:)"
           INVALID_COMMIT_MSGS=""
 
           COMMITS=$(git log $RANGE --pretty=format:"%H")

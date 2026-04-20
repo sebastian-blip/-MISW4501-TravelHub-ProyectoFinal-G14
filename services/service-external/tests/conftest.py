@@ -16,6 +16,9 @@ os.environ["KAFKA_BOOTSTRAP_SERVERS"] = ""
 os.environ["PAYMENT_ADAPTER_STRATEGY"] = "mock"
 os.environ["PMS_ADAPTER_STRATEGY"] = "mock"
 os.environ["CURRENCY_ADAPTER_STRATEGY"] = "mock"
+os.environ["CDN_STORAGE_ADAPTER_STRATEGY"] = "mock"
+os.environ["MAPS_ADAPTER_STRATEGY"] = "mock"
+os.environ["NOTIFICATION_ADAPTER_STRATEGY"] = "mock"
 
 # Stable random-mode tests if the consumer module was imported with compose-style env.
 os.environ.setdefault("TH_MOCK_RESERVATION_EXISTS_RATE", "0.25")

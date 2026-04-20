@@ -40,12 +40,27 @@ Variables Kafka: `KAFKA_ENABLED`, `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_USERNAME`, `
 | `/pms` | `POST /pms/v1/bookings/confirmation` | Body: `external_booking_id`, `hotel_external_id`, `guest_email?` |
 | `/pms` | `POST /pms/v1/webhooks/inventory` | Body: `hotel_external_id`, `callback_url` → `{ "webhook_id" }` |
 | `/payment` | `POST /payment/v1/payment-intents` | |
-| `/currency` | `GET /currency/v1/rates?base=USD&quote=COP` | |
+| `/currency` | `GET /currency/v1/rates?base=USD&quote=COP` | Tasas vía [Frankfurter](https://www.frankfurter.dev/) (`TH_FX_FRANKFURTER_BASE_URL`, default `https://api.frankfurter.dev`). |
+| `/currency` | `POST /currency/v1/convert` | Body JSON: `amount` (>0), `from_currency`, `to_currency` (ISO 4217 o `USDC` tratado como USD en el proveedor). |
 | `/cdn-storage` | `POST /cdn-storage/v1/signed-urls` | |
 | `/maps` | `GET /maps/v1/geocode?...` | |
 | `/notification` | `POST /notification/v1/notifications/email` | |
 
 Salud global: `GET /health`, `GET /ready`.
+
+### Cobertura de tests (objetivo ≥ 90 %)
+
+Desde `services/service-external`:
+
+```bash
+python -m pytest tests/unit/ -q \
+  --cov=domains --cov=routes --cov=resilience --cov=main --cov=infrastructure \
+  --cov-config=.coveragerc --cov-report=term-missing
+```
+
+El umbral mínimo (90 %) está en `.coveragerc` (`fail_under`); si falla el job, sube cobertura o baja ese valor con criterio de equipo.
+
+HTML opcional: añade `--cov-report=html` y abre `htmlcov/index.html`.
 
 ## Variables de entorno (estrategia por integración)
 
@@ -53,7 +68,10 @@ Cada integración elige adaptador con su propia variable (evita colisiones con u
 
 - `PMS_ADAPTER_STRATEGY` (default `pms`)
 - `PAYMENT_ADAPTER_STRATEGY` (default `gateway`)
-- `CURRENCY_ADAPTER_STRATEGY` (default `exchange`)
+- `CURRENCY_ADAPTER_STRATEGY` (default `exchange`; usa Frankfurter en el cliente HTTP)
+- `TH_FX_CACHE_TTL` (segundos de caché de tasa, default `30`)
+- `TH_FX_FRANKFURTER_BASE_URL` (default `https://api.frankfurter.dev`)
+- `TH_FX_REQUEST_TIMEOUT` (segundos, default `10`)
 - `CDN_STORAGE_ADAPTER_STRATEGY` (default `cdn`)
 - `MAPS_ADAPTER_STRATEGY` (default `maps`)
 - `NOTIFICATION_ADAPTER_STRATEGY` (default `email_sms`)

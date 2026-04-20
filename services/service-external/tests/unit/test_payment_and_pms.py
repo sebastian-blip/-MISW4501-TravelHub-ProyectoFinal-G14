@@ -50,6 +50,18 @@ class TestMockPaymentAdapter:
         assert out.status == "succeeded"
         assert out.refund_id.startswith("re_mock_")
 
+    def test_capture_payment_returns_succeeded(self):
+        adapter = MockPaymentAdapter()
+        out = adapter.capture_payment("pi_abc", amount_cents=999)
+        assert out.id == "pi_abc"
+        assert out.status == "succeeded"
+
+    def test_tokenize_payment_method_returns_pm(self):
+        adapter = MockPaymentAdapter()
+        out = adapter.tokenize_payment_method("tr_any")
+        assert out.payment_method_token.startswith("pm_mock_")
+        assert out.last4 == "4242"
+
 
 class TestMockPMSAdapter:
     def test_fetch_catalog_snapshot_includes_hotel_and_room_types(self):

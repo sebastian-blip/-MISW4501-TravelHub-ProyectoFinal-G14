@@ -28,6 +28,7 @@ class Reservation(SQLModel, table=True):
     cancellation_policy: Optional[str] = Field(default=None, max_length=50)
     special_requests: Optional[str] = Field(default=None)
     confirmation_code: Optional[str] = Field(default=None, max_length=20, unique=True)
+    user_guest_id : Optional[UUID] = Field(default=None, index=True)
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default=None)

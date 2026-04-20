@@ -63,9 +63,11 @@ class ReservationRepository:
         cancellation_policy: Optional[str] = None,
         special_requests: Optional[str] = None,
         confirmation_code: Optional[str] = None,
+        user_guest_id: Optional[UUID] = None,
     ) -> Reservation:
         reservation = Reservation(
             user_id=user_id,
+            user_guest_id=user_guest_id,
             hotel_id=hotel_id,
             room_type_id=room_type_id,
             cart_id=cart_id,
@@ -82,6 +84,7 @@ class ReservationRepository:
             confirmation_code=confirmation_code,
         )
         self.session.add(reservation)
+        await self.session.flush()
         return reservation
 
     async def update_status(self, reservation_id: UUID, status: str) -> Optional[Reservation]:

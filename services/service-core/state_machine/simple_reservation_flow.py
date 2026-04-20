@@ -63,43 +63,43 @@ class SimpleReservationFlow:
         
         print(f"[Flow] Paso 1 - Solicitando validación a service-test: user={user_id}")
         
-        correlation_id = str(uuid.uuid4())
+        # correlation_id = str(uuid.uuid4())
         from_kafka = False  # Inicializar por si falla Kafka
-        try:
-            await publish_reservation_validate(
-                user_id=user_id,
-                hotel_id=hotel_id,
-                room_type_id=room_type_id,
-                check_in=str(check_in),
-                check_out=str(check_out),
-                correlation_id=correlation_id
-            )
-
-            # 2. Esperar respuesta de service-test (timeout 5 segundos)
-            print(f"[Flow] Esperando respuesta de service-test (correlation_id={correlation_id[:8]}...)")
-            reply = await wait_for_reply(correlation_id, timeout=5.0)
-
-            exists = reply.get("exists", False)
-            from_kafka = True
-            print(f"[Flow] service-external/Kafka respondió: exists={exists}")
-
-            if exists:
-                msg = reply.get("message")
-                return {
-                    "success": True,
-                    "proceed": False,
-                    "exists": True,
-                    "overlap": False,
-                    "from_kafka": True,
-                    "pms_blocked": True,
-                    "message": (str(msg).strip() if msg else "")
-                    or "Validación externa (PMS/Kafka): no es posible crear la reserva.",
-                }
-
-        except Exception as e:
-            print(f"[Flow] Error en comunicación con service-test: {e}")
-            # Si falla Kafka, continuamos con validación local (fallback)
-            exists = False
+        # try:
+        #     await publish_reservation_validate(
+        #         user_id=user_id,
+        #         hotel_id=hotel_id,
+        #         room_type_id=room_type_id,
+        #         check_in=str(check_in),
+        #         check_out=str(check_out),
+        #         correlation_id=correlation_id
+        #     )
+        #
+        #     # 2. Esperar respuesta de service-test (timeout 5 segundos)
+        #     print(f"[Flow] Esperando respuesta de service-test (correlation_id={correlation_id[:8]}...)")
+        #     reply = await wait_for_reply(correlation_id, timeout=5.0)
+        #
+        #     exists = reply.get("exists", False)
+        #     from_kafka = True
+        #     print(f"[Flow] service-external/Kafka respondió: exists={exists}")
+        #
+        #     if exists:
+        #         msg = reply.get("message")
+        #         return {
+        #             "success": True,
+        #             "proceed": False,
+        #             "exists": True,
+        #             "overlap": False,
+        #             "from_kafka": True,
+        #             "pms_blocked": True,
+        #             "message": (str(msg).strip() if msg else "")
+        #             or "Validación externa (PMS/Kafka): no es posible crear la reserva.",
+        #         }
+        #
+        # except Exception as e:
+        #     print(f"[Flow] Error en comunicación con service-test: {e}")
+        #     # Si falla Kafka, continuamos con validación local (fallback)
+        #     exists = False
 
         # 4. Consultar BD - Validar que no exista solapamiento de fechas para la misma habitación
         async with async_session_maker() as session:
@@ -167,9 +167,11 @@ class SimpleReservationFlow:
         try:
             # user_id es opcional (puede ser reserva de invitado)
             user_id = UUID(self.context["user_id"]) if self.context.get("user_id") else None
+            user_guest_id = UUID(self.context["user_guest_id"]) if self.context.get("user_guest_id") else None
             
             command = CreateReservationCommand(
                 user_id=user_id,
+                user_guest_id=user_guest_id,
                 hotel_id=UUID(self.context["hotel_id"]),
                 room_type_id=UUID(self.context["room_type_id"]),
                 check_in=self.context["check_in"],

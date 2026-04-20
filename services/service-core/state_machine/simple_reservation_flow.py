@@ -102,39 +102,39 @@ class SimpleReservationFlow:
         #     exists = False
 
         # 4. Consultar BD - Validar que no exista solapamiento de fechas para la misma habitación
-        async with async_session_maker() as session:
-            # Lógica de solapamiento: 
-            # Hay solapamiento si: nueva_check_in < existente_check_out AND nueva_check_out > existente_check_in
-            stmt = select(Reservation).where(
-                and_(
-                    Reservation.hotel_id == UUID(hotel_id),
-                    Reservation.room_type_id == UUID(room_type_id),
-                    Reservation.check_in < check_out,      # La existente empieza antes de que termine la nueva
-                    Reservation.check_out > check_in,      # La existente termina después de que empiece la nueva
-                    Reservation.status.in_(["pending", "confirmed"])
-                )
-            )
-            result = await session.execute(stmt)
-            # Puede haber múltiples, tomamos el primero
-            existing = result.scalars().first()
-            
-            if existing:
-                return {
-                    "success": True,
-                    "proceed": False,  # No continuar, fechas solapadas
-                    "exists": True,
-                    "overlap": True,  # Indica solapamiento de fechas
-                    "from_kafka": from_kafka,
-                    "confirmation_code": existing.confirmation_code,
-                    "message": f"La habitación ya está reservada en esas fechas. Reserva existente: {existing.confirmation_code}",
-                    "reservation": {
-                        "id": str(existing.id),
-                        "status": existing.status,
-                        "check_in": str(existing.check_in),
-                        "check_out": str(existing.check_out),
-                        "total_price": str(existing.total_price)
-                    }
-                }
+        # async with async_session_maker() as session:
+        #     # Lógica de solapamiento:
+        #     # Hay solapamiento si: nueva_check_in < existente_check_out AND nueva_check_out > existente_check_in
+        #     stmt = select(Reservation).where(
+        #         and_(
+        #             Reservation.hotel_id == UUID(hotel_id),
+        #             Reservation.room_type_id == UUID(room_type_id),
+        #             Reservation.check_in < check_out,      # La existente empieza antes de que termine la nueva
+        #             Reservation.check_out > check_in,      # La existente termina después de que empiece la nueva
+        #             Reservation.status.in_(["pending", "confirmed"])
+        #         )
+        #     )
+        #     result = await session.execute(stmt)
+        #     # Puede haber múltiples, tomamos el primero
+        #     existing = result.scalars().first()
+        #
+        #     if existing:
+        #         return {
+        #             "success": True,
+        #             "proceed": False,  # No continuar, fechas solapadas
+        #             "exists": True,
+        #             "overlap": True,  # Indica solapamiento de fechas
+        #             "from_kafka": from_kafka,
+        #             "confirmation_code": existing.confirmation_code,
+        #             "message": f"La habitación ya está reservada en esas fechas. Reserva existente: {existing.confirmation_code}",
+        #             "reservation": {
+        #                 "id": str(existing.id),
+        #                 "status": existing.status,
+        #                 "check_in": str(existing.check_in),
+        #                 "check_out": str(existing.check_out),
+        #                 "total_price": str(existing.total_price)
+        #             }
+        #         }
         
         # No existe en BD, podemos continuar
         return {

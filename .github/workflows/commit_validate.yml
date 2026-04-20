@@ -25,13 +25,18 @@ jobs:
             RANGE="${BASE_SHA}..${HEAD_SHA}"
           fi
 
-          git fetch --unshallow || true
-          git fetch --all
+          # 🚨 NUEVO: Si BASE_SHA es todo ceros, es rama nueva, solo valida HEAD_SHA
+          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "Primer push de una rama nueva. Validando solo el commit actual $HEAD_SHA"
+            COMMITS="$HEAD_SHA"
+          else
+            git fetch --unshallow || true
+            git fetch --all
+            COMMITS=$(git log $RANGE --pretty=format:"%H")
+          fi
 
           ALLOWED_REGEX="^(feature|feat|fix|hotfix|bugfix|breakingchange)(\(|!|\:)"
           INVALID_COMMIT_MSGS=""
-
-          COMMITS=$(git log $RANGE --pretty=format:"%H")
 
           for sha in $COMMITS; do
             MSG=$(git log -1 --pretty=format:"%s" $sha)

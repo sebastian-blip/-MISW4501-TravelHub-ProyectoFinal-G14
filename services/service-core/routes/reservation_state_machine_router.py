@@ -13,19 +13,26 @@ from state_machine.simple_reservation_flow import SimpleReservationFlow
 router = APIRouter(prefix="/reservation-flow", tags=["Reservation Flow"])
 
 
-class PrimaryGuestRequest(BaseModel):
+class PrimaryGuestPaymentRequest(BaseModel):
     first_name: str
     last_name: str
     document_type: Optional[str] = None
     document_number: Optional[str] = None
     nationality: Optional[str] = None
+    email: Optional[str] = None
 
 
-class PaymentRequest(BaseModel):
+class PaymentDetailRequest(BaseModel):
     amount: str
     currency_code: str = "USD"
     payment_token: str
-    provider_id: Optional[str] = None
+
+
+class ConfirmReservationRequest(BaseModel):
+    reservation_id: str
+    primary_guest: PrimaryGuestPaymentRequest
+    payment: PaymentDetailRequest
+
 
 
 class CreateRequest(BaseModel):
@@ -134,4 +141,15 @@ async def data_reservation(reservation_id:str):
     await flow.data_flow()
     return "coco"
 
+
+@router.post("/payment")
+async def payment_reservation(request: ConfirmReservationRequest):
+    flow = SimpleReservationFlow()
+    flow.set_data(
+        reservation_id=request.reservation_id,
+        primary_guest=request.primary_guest.dict(),
+        payment=request.payment.dict(),
+    )
+    result = await flow.run_payment_flow()
+    return result
 

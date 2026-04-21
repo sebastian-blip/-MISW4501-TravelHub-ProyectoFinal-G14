@@ -97,8 +97,6 @@ async def create_reservation(request: CreateReservationRequest):
             total_price=Decimal(request.total_price),
             currency_code=request.currency_code,
             user_id=UUID(request.user_id) if request.user_id else None,
-            primary_guest=request.primary_guest,
-            payment=request.payment,
             cart_id=UUID(request.cart_id) if request.cart_id else None,
             cancellation_policy=request.cancellation_policy,
             special_requests=request.special_requests,

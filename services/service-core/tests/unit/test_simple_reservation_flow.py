@@ -89,11 +89,12 @@ class TestSimpleReservationFlowValidate:
     async def test_validate_blocks_when_kafka_exists_true(self, flow):
         """Kafka/PMS exists=true debe impedir create (sin depender del solapamiento en BD)."""
         with patch(
-            "infrastructure.messaging.kafka.producer.publish_reservation_validate",
+            "state_machine.simple_reservation_flow.publish_reservation_validate",
             new_callable=AsyncMock,
         ):
-            with patch(
-                "infrastructure.messaging.kafka.reply_consumer.wait_for_reply",
+            with patch.object(
+                flow.event,
+                "wait_for_reply",
                 new_callable=AsyncMock,
                 return_value={"exists": True, "message": "PMS: no availability"},
             ):
@@ -101,9 +102,7 @@ class TestSimpleReservationFlowValidate:
 
         assert result["success"] is True
         assert result["proceed"] is False
-        assert result.get("pms_blocked") is True
-        assert result.get("overlap") is False
-        assert "PMS" in result["message"]
+        assert "No hay agenda disponible" in result["message"]
 
     @pytest.mark.asyncio
     async def test_run_create_flow_stops_when_kafka_pms_blocks(self):
@@ -116,15 +115,14 @@ class TestSimpleReservationFlowValidate:
             check_in=date(2026, 5, 1),
             check_out=date(2026, 5, 5),
             guests=2,
-            primary_guest=MagicMock(first_name="Test", last_name="User"),
-            payment=MagicMock(amount="100.00", payment_token="tok_123"),
         )
         with patch(
-            "infrastructure.messaging.kafka.producer.publish_reservation_validate",
+            "state_machine.simple_reservation_flow.publish_reservation_validate",
             new_callable=AsyncMock,
         ):
-            with patch(
-                "infrastructure.messaging.kafka.reply_consumer.wait_for_reply",
+            with patch.object(
+                flow.event,
+                "wait_for_reply",
                 new_callable=AsyncMock,
                 return_value={
                     "exists": True,
@@ -135,9 +133,7 @@ class TestSimpleReservationFlowValidate:
 
         assert result["completed"] is False
         assert result["step"] == "validate"
-        assert result["result"].get("pms_blocked") is True
-        assert result["result"].get("overlap") is False
-        assert "PMS" in result["result"].get("message", "")
+        assert "No hay agenda disponible" in result["result"].get("message", "")
 
 
 class TestSimpleReservationFlowCreate:

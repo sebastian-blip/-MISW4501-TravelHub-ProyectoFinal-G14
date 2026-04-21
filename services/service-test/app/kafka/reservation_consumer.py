@@ -102,6 +102,8 @@ async def _handle_validate_request(payload: dict):
     room_type_id = payload.get("room_type_id", "")
     check_in = payload.get("check_in", "")
     check_out = payload.get("check_out", "")
+
+    reply ={}
     try:
         async with async_session_maker() as session:
 
@@ -140,12 +142,25 @@ async def _handle_validate_request(payload: dict):
             result = await session.execute(query)
             row = result.first()
 
-            reply = {
-                "correlation_id": correlation_id,
-                "exists": True,
-                "confirmation_code": "coco",
-                "message": "Reserva existe (simulada)"
-            }
+            if row is not None :
+
+                ## agenda disponible
+                reply = {
+                    "correlation_id": correlation_id,
+                    "exists": False,
+                    "confirmation_code": "0",
+                    "message": ""
+                }
+            else :
+
+                ## sin agenda disponible
+                reply = {
+                    "correlation_id": correlation_id,
+                    "exists": True,
+                    "confirmation_code": "1",
+                }
+
+
                 
     except Exception as e:
             logging.error(f"[service-test] Error creando reserva: {e}")
@@ -155,14 +170,7 @@ async def _handle_validate_request(payload: dict):
                 "error": str(e),
                 "message": "Error al crear reserva"
             }
-    else:
-        logging.info(f"[service-test] Simulando NO EXISTE")
-        reply = {
-            "correlation_id": correlation_id,
-            "exists": False,
-            "message": "Reserva no existe (simulada)"
-        }
-    
+
     await _producer.send_and_wait(
         TOPIC_RESERVATION_RESULTS,
         json.dumps(reply).encode("utf-8")

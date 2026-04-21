@@ -27,23 +27,25 @@ class EventMachine:
 
             result = await self.wait_for_reply(correlation_id, timeout=5.0)
 
-            exists = result.get("exists", False)
-            if exists:
+            exists = result.get("exists", True)
+
+            ## false disponible , true reserva existente
+            if exists is False:
                 msg = result.get("message", "")
                 return {
                     "success": True,
-                    "proceed": False,
+                    "proceed": True,
                     "exists": True,
                     "from_kafka": True,
-                    "message": str(msg).strip() or "Reserva ya existe, no se puede crear."
+                    "message": str(msg).strip() or "agenda disponible. OK para cancelar."
                 }
             else:
                 return {
                     "success": True,
-                    "proceed": True,   # ← fix: si no existe, sí proceder
+                    "proceed": False,   # ← fix: si no existe, sí proceder
                     "exists": False,
                     "from_kafka": True,
-                    "message": "No existe reserva. OK para crear."
+                    "message": "No hay agenda disponible."
                 }
 
         except TimeoutError:

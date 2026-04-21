@@ -1,5 +1,5 @@
 info:
-  name: login
+  name: login admin
   type: http
   seq: 2
 
@@ -14,6 +14,13 @@ http:
         "password": "$2b$12$placeholderHashBogota"
       }
   auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const response = res.getBody();
+        bru.setEnvVar("token_admin", response.access_token);
 
 settings:
   encodeUrl: true

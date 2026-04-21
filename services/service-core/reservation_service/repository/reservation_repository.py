@@ -1,11 +1,12 @@
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from uuid import UUID
 from decimal import Decimal
 from datetime import date
 
-from sqlalchemy import select, desc, or_
+from sqlalchemy import select, desc, or_, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from domain.models.reservation import Reservation
+from domain.models.room_type import RoomType
 
 
 VALID_STATUSES = {"pending", "confirmed", "cancelled", "completed"}
@@ -97,6 +98,37 @@ class ReservationRepository:
         self.session.add(reservation)
         await self.session.flush()
         return reservation
+
+    async def count_by_date_range(self, start_date: date, end_date: date) -> int:
+        statement = (
+            select(func.count(Reservation.id))
+            .where(Reservation.check_in <= end_date)
+            .where(Reservation.check_out >= start_date)
+        )
+        result = await self.session.execute(statement)
+        return result.scalar_one()
+
+    async def list_by_date_range_with_room_type(
+        self,
+        start_date: date,
+        end_date: date,
+        status: Optional[str] = None,
+    ) -> List[Tuple[Reservation, RoomType]]:
+        filters = [
+            Reservation.check_in <= end_date,
+            Reservation.check_out >= start_date,
+        ]
+        if status:
+            filters.append(Reservation.status == status)
+
+        statement = (
+            select(Reservation, RoomType)
+            .join(RoomType, Reservation.room_type_id == RoomType.id)
+            .where(and_(*filters))
+            .order_by(Reservation.check_in)
+        )
+        result = await self.session.execute(statement)
+        return result.all()
 
     async def update_status(self, reservation_id: UUID, status: str) -> Optional[Reservation]:
         if status not in VALID_STATUSES:

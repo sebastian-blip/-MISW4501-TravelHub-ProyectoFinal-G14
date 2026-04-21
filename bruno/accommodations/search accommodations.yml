@@ -6,6 +6,9 @@ info:
 http:
   method: GET
   url: "{{local_core}}/accommodations/search?city={{city1}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
+  headers:
+    - name: X-Guest-Id
+      value: ""
   params:
     - name: city
       value: "{{city1}}"

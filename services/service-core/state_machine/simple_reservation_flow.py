@@ -10,19 +10,21 @@ from datetime import date
 from mediatr import Mediator
 from reservation_service.commands import CreateReservationCommand, UpdateReservationStatusCommand
 from reservation_service.queries import GetReservationByCodeQuery
+from .event_machine import EventMachine
+from infrastructure.messaging.kafka.producer import publish_reservation_validate
+from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
+from infrastructure.database import async_session_maker
 
 
 class SimpleReservationFlow:
-    """
-    Flujo de reservación con pasos fijos.
-    No usa reflection, todo es explícito.
-    """
-    
+
+
     def __init__(self):
         self.mediator = Mediator()
         self.context: Dict[str, Any] = {}
         self.current_step = "validate"
         self.history = ["validate"]
+        self.event = EventMachine(publish_reservation_validate, wait_for_reply, async_session_maker)
     
     def set_data(self, **kwargs):
         """Guarda datos para el flujo."""
@@ -30,28 +32,14 @@ class SimpleReservationFlow:
     
     # ========== PASO 1: VALIDATE ==========
     async def step_validate(self) -> Dict[str, Any]:
-        """
-        Paso 1: Valida vía Kafka (service-external / PMS) y luego solapamiento en BD.
-        Flujo:
-        1. Publica solicitud en Kafka y espera respuesta (exists / mensaje).
-        2. Si exists=true (sin disponibilidad PMS u otro bloqueo externo): proceed=false, no crear.
-        3. Si exists=false: consulta BD por solapamiento de fechas; si hay solapamiento, proceed=false.
-        4. Si no hay bloqueo: proceed=true.
-        """
         import uuid
-        from sqlalchemy import select, and_
-        from infrastructure.database import async_session_maker
-        from domain.models.reservation import Reservation
-        from infrastructure.messaging.kafka.producer import publish_reservation_validate
-        from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
-        
+
         user_id = self.context.get("user_id")
         hotel_id = self.context.get("hotel_id")
         room_type_id = self.context.get("room_type_id")
         check_in = self.context.get("check_in")
         check_out = self.context.get("check_out")
-        
-        # user_id es opcional (puede ser reserva de invitado/guest)
+
         required_fields = ["hotel_id", "room_type_id", "check_in", "check_out"]
         if not all([hotel_id, room_type_id, check_in, check_out]):
             return {
@@ -60,90 +48,22 @@ class SimpleReservationFlow:
                 "error": "Faltan datos obligatorios",
                 "missing": [k for k in required_fields if not self.context.get(k)]
             }
-        
-        print(f"[Flow] Paso 1 - Solicitando validación a service-test: user={user_id}")
-        
+
         correlation_id = str(uuid.uuid4())
-        from_kafka = False  # Inicializar por si falla Kafka
-        try:
-            await publish_reservation_validate(
-                user_id=user_id,
-                hotel_id=hotel_id,
-                room_type_id=room_type_id,
-                check_in=str(check_in),
-                check_out=str(check_out),
-                correlation_id=correlation_id
-            )
+        result = await self.event.validate_reservation(
+            correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
+        )
 
-            # 2. Esperar respuesta de service-test (timeout 5 segundos)
-            print(f"[Flow] Esperando respuesta de service-test (correlation_id={correlation_id[:8]}...)")
-            reply = await wait_for_reply(correlation_id, timeout=5.0)
+        if result is None:
+            return {
+                "success": True,
+                "proceed": True,
+                "exists": False,
+                "from_kafka": False,
+                "message": "Kafka no disponible, sin validación externa."
+            }
 
-            exists = reply.get("exists", False)
-            from_kafka = True
-            print(f"[Flow] service-external/Kafka respondió: exists={exists}")
-
-            if exists:
-                msg = reply.get("message")
-                return {
-                    "success": True,
-                    "proceed": False,
-                    "exists": True,
-                    "overlap": False,
-                    "from_kafka": True,
-                    "pms_blocked": True,
-                    "message": (str(msg).strip() if msg else "")
-                    or "Validación externa (PMS/Kafka): no es posible crear la reserva.",
-                }
-
-        except Exception as e:
-            print(f"[Flow] Error en comunicación con service-test: {e}")
-            # Si falla Kafka, continuamos con validación local (fallback)
-            exists = False
-
-        # 4. Consultar BD - Validar que no exista solapamiento de fechas para la misma habitación
-        # async with async_session_maker() as session:
-        #     # Lógica de solapamiento:
-        #     # Hay solapamiento si: nueva_check_in < existente_check_out AND nueva_check_out > existente_check_in
-        #     stmt = select(Reservation).where(
-        #         and_(
-        #             Reservation.hotel_id == UUID(hotel_id),
-        #             Reservation.room_type_id == UUID(room_type_id),
-        #             Reservation.check_in < check_out,      # La existente empieza antes de que termine la nueva
-        #             Reservation.check_out > check_in,      # La existente termina después de que empiece la nueva
-        #             Reservation.status.in_(["pending", "confirmed"])
-        #         )
-        #     )
-        #     result = await session.execute(stmt)
-        #     # Puede haber múltiples, tomamos el primero
-        #     existing = result.scalars().first()
-        #
-        #     if existing:
-        #         return {
-        #             "success": True,
-        #             "proceed": False,  # No continuar, fechas solapadas
-        #             "exists": True,
-        #             "overlap": True,  # Indica solapamiento de fechas
-        #             "from_kafka": from_kafka,
-        #             "confirmation_code": existing.confirmation_code,
-        #             "message": f"La habitación ya está reservada en esas fechas. Reserva existente: {existing.confirmation_code}",
-        #             "reservation": {
-        #                 "id": str(existing.id),
-        #                 "status": existing.status,
-        #                 "check_in": str(existing.check_in),
-        #                 "check_out": str(existing.check_out),
-        #                 "total_price": str(existing.total_price)
-        #             }
-        #         }
-        
-        # No existe en BD, podemos continuar
-        return {
-            "success": True,
-            "proceed": True,  # Continuar al siguiente paso
-            "exists": False,
-            "from_kafka": from_kafka,
-            "message": "No existe reserva. OK para crear."
-        }
+        return result
     
     # ========== PASO 2: CREATE ==========
     async def step_create(self) -> Dict[str, Any]:

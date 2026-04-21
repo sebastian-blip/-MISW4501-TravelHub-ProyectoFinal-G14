@@ -96,8 +96,6 @@ class SimpleReservationFlow:
                 room_type_id=UUID(self.context["room_type_id"]),
                 check_in=self.context["check_in"],
                 check_out=self.context["check_out"],
-                primary_guest=self.context.get("primary_guest"),
-                payment=self.context.get("payment"),
                 guests=self.context.get("guests", 1),
                 base_price=base,
                 taxes=taxes,

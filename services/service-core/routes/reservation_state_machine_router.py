@@ -40,8 +40,6 @@ class CreateRequest(BaseModel):
     discounts: str = "0.00"
     total_price: str = "0.00"
     currency_code: str = "USD"
-    primary_guest: PrimaryGuestRequest
-    payment: PaymentRequest
     cart_id: Optional[str] = None
     cancellation_policy: Optional[str] = None
     special_requests: Optional[str] = None
@@ -76,8 +74,6 @@ async def create_reservation(request: CreateRequest, x_guest_id: str = Header(..
             discounts=request.discounts,
             total_price=request.total_price,
             currency_code=request.currency_code,
-            primary_guest=request.primary_guest,
-            payment=request.payment,
             cart_id=request.cart_id,
             cancellation_policy=request.cancellation_policy,
             special_requests=request.special_requests,

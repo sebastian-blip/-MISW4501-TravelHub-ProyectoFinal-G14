@@ -23,18 +23,6 @@ http:
         "discounts": "25.00",
         "total_price": "525.00",
         "currency_code": "USD",
-        "primary_guest": {
-          "first_name": "Juan",
-          "last_name": "Pérez",
-          "document_type": "CC",
-          "document_number": "1234567890",
-          "nationality": "COL"
-        },
-        "payment": {
-          "amount": "525.00",
-          "currency_code": "USD",
-          "payment_token": "tok_visa_4242424242424242"
-        },
         "special_requests": "Habitación con vista al mar"
       }
   auth: inherit

@@ -125,3 +125,13 @@ async def check_reservation(confirmation_code: str):
         return {"exists": False, "message": "Reserva no encontrada"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/data/{reservation_id}")
+async def data_reservation(reservation_id:str):
+    flow = SimpleReservationFlow()
+    flow.set_data(reservation_id=reservation_id)
+    await flow.data_flow()
+    return "coco"
+
+

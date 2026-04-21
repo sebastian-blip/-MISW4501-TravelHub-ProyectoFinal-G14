@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{core}}/accommodations/search?city={{city1}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
+  url: "{{local_core}}/accommodations/search?city={{city1}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
   params:
     - name: city
       value: "{{city1}}"

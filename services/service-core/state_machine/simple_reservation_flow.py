@@ -5,11 +5,11 @@ Sin dinamismo, pasos fijos y explícitos.
 from typing import Optional, Dict, Any
 from uuid import UUID
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 
 from mediatr import Mediator
 from reservation_service.commands import CreateReservationCommand, UpdateReservationStatusCommand
-from reservation_service.queries import GetReservationByCodeQuery
+from reservation_service.queries import GetReservationByCodeQuery , GetReservationByIdHandler , GetReservationByIdQuery
 from .event_machine import EventMachine
 from infrastructure.messaging.kafka.producer import publish_reservation_validate
 from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
@@ -39,6 +39,7 @@ class SimpleReservationFlow:
         room_type_id = self.context.get("room_type_id")
         check_in = self.context.get("check_in")
         check_out = self.context.get("check_out")
+
 
         required_fields = ["hotel_id", "room_type_id", "check_in", "check_out"]
         if not all([hotel_id, room_type_id, check_in, check_out]):
@@ -253,5 +254,36 @@ class SimpleReservationFlow:
             "step": "cancelation",
             "result": result
         }
+
+    async def data_flow(self):
+
+       try :
+            query = GetReservationByIdQuery(reservation_id=UUID(self.context["reservation_id"]))
+            reservation = await self.mediator.send_async(query)
+
+            print(reservation)
+
+            return {
+                "completed": True,
+                "step": "cancelation",
+            }
+
+       except Exception as e:
+
+
+            return {
+                "completed": False,
+            }
+
+
+
+
+
+
+
+
+
+
+
 
 

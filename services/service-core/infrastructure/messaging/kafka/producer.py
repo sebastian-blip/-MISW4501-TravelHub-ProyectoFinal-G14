@@ -13,24 +13,29 @@ TOPIC_AWS_TEST = "aws-test-messages"
 _producer: AIOKafkaProducer | None = None
 
 
+# producer.py
 async def start_producer(
         bootstrap_servers: str,
         use_ssl: bool = False,
         username: str = "",
         password: str = ""
 ):
-    """Inicia el productor de Kafka con soporte para SASL/SSL en AWS."""
     global _producer
+
+    kafka_local = os.getenv("KAFKA_LOCAL", "false").lower() == "true"
 
     config = {
         "bootstrap_servers": bootstrap_servers,
     }
 
+    if not kafka_local:
+        config["sasl_mechanism"] = "SCRAM-SHA-256"
+        config["security_protocol"] = "SASL_SSL"  # AWS MSK usa SSL
+        config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME")
+        config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD")
+    else:
+        config["sasl_mechanism"] = "PLAIN"
 
-    config["sasl_mechanism"] = "SCRAM-SHA-256"
-    config["security_protocol"] = "SASL_PLAINTEXT"
-    config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME")
-    config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD")
 
 
     _producer = AIOKafkaProducer(**config)

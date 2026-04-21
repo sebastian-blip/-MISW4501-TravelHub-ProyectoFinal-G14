@@ -16,34 +16,41 @@ _consumer: AIOKafkaConsumer | None = None
 _task: asyncio.Task | None = None
 
 
+# reply_consumer.py
 async def start_reply_consumer(
     bootstrap_servers: str,
     use_ssl: bool = False,
     username: str = "",
     password: str = ""
 ):
-    """Inicia el consumidor de respuestas con soporte para SASL."""
     global _consumer, _task
-    
+
+    kafka_local = os.getenv("KAFKA_LOCAL", "false").lower() == "true"
+
     config = {
         "bootstrap_servers": bootstrap_servers,
         "group_id": "service-core-reply-group",
         "auto_offset_reset": "latest",
         "enable_auto_commit": True,
     }
-    
 
-    config["sasl_mechanism"] = "SCRAM-SHA-256"
-    config["security_protocol"] = "SASL_PLAINTEXT"
-    config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME", "")
-    config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD", "")
-    
+    if not kafka_local:
+        config["sasl_mechanism"] = "SCRAM-SHA-256"
+        config["security_protocol"] = "SASL_SSL"  # AWS MSK usa SSL
+        config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME", "")
+        config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD", "")
+    else:
+        config["sasl_mechanism"] = "PLAIN"
+
+
+
     _consumer = AIOKafkaConsumer(
         TOPIC_RESULTS,
         TOPIC_RESERVATION_RESULTS,
         **config
     )
     await _consumer.start()
+    ...
     _task = asyncio.create_task(_consume())
     logging.info(
         "[service-core ReplyConsumer] escuchando topics=%s, %s",

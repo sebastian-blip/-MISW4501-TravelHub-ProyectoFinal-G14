@@ -17,10 +17,10 @@ from app.routes.test_results_router import router as test_results_router
 
 # Configuración de Kafka
 KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true").lower() == "true"
+KAFKA_LOCAL = os.getenv("KAFKA_LOCAL", "false").lower() == "true"
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
 KAFKA_USERNAME = os.getenv("KAFKA_USERNAME", "")
 KAFKA_PASSWORD = os.getenv("KAFKA_PASSWORD", "")
-KAFKA_CA_PATH = os.getenv("KAFKA_CA_PATH", "/app/certs/ca-cert.pem")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,28 +47,25 @@ async def lifespan(app: FastAPI):
 
     if KAFKA_ENABLED:
         try:
-            logging.info(f"[Kafka] Conectando a AWS: {KAFKA_BOOTSTRAP_SERVERS}")
-            if True:  # Cambiar a True si la lógica indicaba USE_SSL y ya lo removemos como en service-core
-                await start_producer(
-                    KAFKA_BOOTSTRAP_SERVERS,
-                    use_ssl=True,
-                    username=KAFKA_USERNAME,
-                    password=KAFKA_PASSWORD
-                )
-                await start_consumer(
-                    KAFKA_BOOTSTRAP_SERVERS,
-                    use_ssl=True,
-                    username=KAFKA_USERNAME,
-                    password=KAFKA_PASSWORD
-                )
-                await start_reservation_consumer(
-                    KAFKA_BOOTSTRAP_SERVERS,
-                    use_ssl=True,
-                    username=KAFKA_USERNAME,
-                    password=KAFKA_PASSWORD
-                )
-            else:
-                logging.warning("[Kafka] SSL no está habilitado, no se pueden iniciar los consumidores/productores.")
+            logging.info(f"[Kafka] Conectando a: {KAFKA_BOOTSTRAP_SERVERS} (local={KAFKA_LOCAL})")
+            await start_producer(
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=not KAFKA_LOCAL,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD
+            )
+            await start_consumer(
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=not KAFKA_LOCAL,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD
+            )
+            await start_reservation_consumer(
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=not KAFKA_LOCAL,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD
+            )
         except Exception as e:
             logging.warning(f"[Kafka] No disponible: {e}")
     else:
@@ -100,16 +97,17 @@ async def health():
         "service": "service-test",
         "kafka": {
             "bootstrap_servers": KAFKA_BOOTSTRAP_SERVERS,
-            "enabled": KAFKA_ENABLED
+            "enabled": KAFKA_ENABLED,
+            "local": KAFKA_LOCAL
         }
     }
 
 
 @app.get("/config/kafka")
 async def get_kafka_config():
-    """Endpoint para verificar la configuración actual de Kafka."""
     return {
         "kafka_enabled": KAFKA_ENABLED,
+        "kafka_local": KAFKA_LOCAL,
         "bootstrap_servers": KAFKA_BOOTSTRAP_SERVERS,
         "auth_configured": bool(KAFKA_USERNAME and KAFKA_PASSWORD)
     }
@@ -117,5 +115,5 @@ async def get_kafka_config():
 
 if __name__ == "__main__":
     import uvicorn
-    print(f"Starting server... Kafka AWS: {KAFKA_BOOTSTRAP_SERVERS}")
+    print(f"Starting server... Kafka: {KAFKA_BOOTSTRAP_SERVERS} (local={KAFKA_LOCAL})")
     uvicorn.run(app, host="0.0.0.0", port=8001)

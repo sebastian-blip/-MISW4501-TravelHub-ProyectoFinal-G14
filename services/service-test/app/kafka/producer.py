@@ -3,6 +3,7 @@ import logging
 import os
 from aiokafka import AIOKafkaProducer
 
+
 TOPIC_REQUESTS = "user-validation-requests"
 
 _producer: AIOKafkaProducer | None = None

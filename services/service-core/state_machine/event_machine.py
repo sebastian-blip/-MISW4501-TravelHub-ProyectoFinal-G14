@@ -9,14 +9,14 @@ def _serialize(obj):
 
 class EventMachine:
 
-    def __init__(self, publish_reservation_validate, wait_for_reply, async_session_maker):
-        self.publish_reservation_validate = publish_reservation_validate
+    def __init__(self, wait_for_reply, async_session_maker):
+
         self.wait_for_reply = wait_for_reply
         self.async_session_maker = async_session_maker
 
-    async def validate_reservation(self, correlation_id, user_id, hotel_id, room_type_id, check_in, check_out):
+    async def validate_reservation(self, publish_reservation_validate, correlation_id, user_id, hotel_id, room_type_id, check_in, check_out):
         try:
-            await self.publish_reservation_validate(
+            await publish_reservation_validate(
                 user_id=user_id,
                 hotel_id=hotel_id,
                 room_type_id=room_type_id,

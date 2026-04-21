@@ -24,7 +24,7 @@ class SimpleReservationFlow:
         self.context: Dict[str, Any] = {}
         self.current_step = "validate"
         self.history = ["validate"]
-        self.event = EventMachine(publish_reservation_validate, wait_for_reply, async_session_maker)
+        self.event = EventMachine(wait_for_reply, async_session_maker)
     
     def set_data(self, **kwargs):
         """Guarda datos para el flujo."""
@@ -50,8 +50,7 @@ class SimpleReservationFlow:
             }
 
         correlation_id = str(uuid.uuid4())
-        result = await self.event.validate_reservation(
-            correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
+        result = await self.event.validate_reservation(publish_reservation_validate,correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
         )
 
         if result is None:

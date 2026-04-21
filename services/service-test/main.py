@@ -12,6 +12,7 @@ from app.infrastructure.database import init_db
 from app.kafka.producer import start_producer, stop_producer
 from app.kafka.consumer import start_consumer, stop_consumer
 from app.kafka.reservation_consumer import start_reservation_consumer, stop_reservation_consumer
+from app.kafka.prueba_consumer import start_prueba_consumer, stop_prueba_consumer  # ← nuevo
 from app.routes.check_router import router as check_router
 from app.routes.test_results_router import router as test_results_router
 
@@ -66,6 +67,12 @@ async def lifespan(app: FastAPI):
                 username=KAFKA_USERNAME,
                 password=KAFKA_PASSWORD
             )
+            await start_prueba_consumer(  # ← nuevo
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=not KAFKA_LOCAL,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD
+            )
         except Exception as e:
             logging.warning(f"[Kafka] No disponible: {e}")
     else:
@@ -77,6 +84,7 @@ async def lifespan(app: FastAPI):
         await stop_producer()
         await stop_consumer()
         await stop_reservation_consumer()
+        await stop_prueba_consumer()  # ← nuevo
 
 
 app = FastAPI(

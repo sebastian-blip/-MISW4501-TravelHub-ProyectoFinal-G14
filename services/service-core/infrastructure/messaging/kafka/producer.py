@@ -4,11 +4,13 @@ import json
 import logging
 import os
 from aiokafka import AIOKafkaProducer
+from datetime import date, datetime
 
 TOPIC_REQUESTS = "user-validation-requests"
 TOPIC_STEP_EVENTS = "step-change-events"
 TOPIC_RESERVATION_VALIDATE = "reservation-validate-requests"
 TOPIC_AWS_TEST = "aws-test-messages"
+TOPIC_PRUEBA = "prueba-requests"
 
 _producer: AIOKafkaProducer | None = None
 
@@ -134,3 +136,23 @@ async def publish_test_message(
     logging.info(
         f"[service-core Producer] mensaje de prueba AWS enviado → correlation_id={correlation_id}, priority={priority}"
     )
+
+async def publish_prueba(mensaje: str, metadata: dict = None) -> str:
+        """Publica mensaje en prueba-requests y retorna correlation_id."""
+        if _producer is None:
+            raise RuntimeError("Kafka producer no inicializado")
+
+        import uuid
+        cid = str(uuid.uuid4())
+
+        payload = json.dumps({
+            "event": "prueba_message",
+            "correlation_id": cid,
+            "mensaje": mensaje,
+            "metadata": metadata or {},
+            "timestamp": datetime.utcnow().isoformat(),
+        }).encode("utf-8")
+
+        await _producer.send_and_wait(TOPIC_PRUEBA, payload)
+        logging.info(f"[service-core Producer] prueba enviada → correlation_id={cid[:8]}...")
+        return cid

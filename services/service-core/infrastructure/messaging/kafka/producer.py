@@ -32,7 +32,7 @@ async def start_producer(
 
     if not kafka_local:
         config["sasl_mechanism"] = "SCRAM-SHA-256"
-        config["security_protocol"] = "SASL_SSL"  # AWS MSK usa SSL
+        config["security_protocol"] = "SASL_PLAINTEXT"  
         config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME")
         config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD")
     else:

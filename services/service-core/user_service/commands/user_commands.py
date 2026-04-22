@@ -33,3 +33,4 @@ class RegisterUserResponse:
 class LoginResponse:
     access_token: str
     token_type: str
+    user_type: str

@@ -1,0 +1,36 @@
+info:
+  name: get reservations
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{local_core}}/hotel-admin/reservations?start_date={{start_date}}&end_date={{end_date}}&status={{status}}"
+  params:
+    - name: start_date
+      value: "{{start_date}}"
+      type: query
+    - name: end_date
+      value: "{{end_date}}"
+      type: query
+    - name: status
+      value: "{{status}}"
+      type: query
+  auth:
+    type: bearer
+    token: "{{token_admin}}"
+
+runtime:
+  variables:
+    - name: start_date
+      value: 2026-05-01
+    - name: end_date
+      value: 2026-05-31
+    - name: status
+      value: pending
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

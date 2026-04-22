@@ -1,0 +1,21 @@
+info:
+  name: prueba kafka
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{local_core}}/prueba/mensaje"
+  body:
+    type: json
+    data: |-
+      {
+        "mensaje": "hola desde core"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

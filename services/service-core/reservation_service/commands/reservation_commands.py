@@ -11,8 +11,8 @@ class CreateReservationCommand:
     room_type_id: UUID
     check_in: date
     check_out: date
-    primary_guest: Any  # PrimaryGuestRequest
-    payment: Any  # PaymentRequest
+    #primary_guest: Any  # PrimaryGuestRequest
+    #payment: Any  # PaymentRequest
     guests: int = 1
     base_price: Decimal = Decimal("0.00")
     taxes: Decimal = Decimal("0.00")

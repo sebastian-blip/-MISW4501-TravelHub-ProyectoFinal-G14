@@ -13,19 +13,26 @@ from state_machine.simple_reservation_flow import SimpleReservationFlow
 router = APIRouter(prefix="/reservation-flow", tags=["Reservation Flow"])
 
 
-class PrimaryGuestRequest(BaseModel):
+class PrimaryGuestPaymentRequest(BaseModel):
     first_name: str
     last_name: str
     document_type: Optional[str] = None
     document_number: Optional[str] = None
     nationality: Optional[str] = None
+    email: Optional[str] = None
 
 
-class PaymentRequest(BaseModel):
+class PaymentDetailRequest(BaseModel):
     amount: str
     currency_code: str = "USD"
     payment_token: str
-    provider_id: Optional[str] = None
+
+
+class ConfirmReservationRequest(BaseModel):
+    reservation_id: str
+    primary_guest: PrimaryGuestPaymentRequest
+    payment: PaymentDetailRequest
+
 
 
 class CreateRequest(BaseModel):
@@ -40,8 +47,6 @@ class CreateRequest(BaseModel):
     discounts: str = "0.00"
     total_price: str = "0.00"
     currency_code: str = "USD"
-    primary_guest: PrimaryGuestRequest
-    payment: PaymentRequest
     cart_id: Optional[str] = None
     cancellation_policy: Optional[str] = None
     special_requests: Optional[str] = None
@@ -76,8 +81,6 @@ async def create_reservation(request: CreateRequest, x_guest_id: str = Header(..
             discounts=request.discounts,
             total_price=request.total_price,
             currency_code=request.currency_code,
-            primary_guest=request.primary_guest,
-            payment=request.payment,
             cart_id=request.cart_id,
             cancellation_policy=request.cancellation_policy,
             special_requests=request.special_requests,
@@ -129,3 +132,24 @@ async def check_reservation(confirmation_code: str):
         return {"exists": False, "message": "Reserva no encontrada"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/data/{reservation_id}")
+async def data_reservation(reservation_id:str):
+    flow = SimpleReservationFlow()
+    flow.set_data(reservation_id=reservation_id)
+    await flow.data_flow()
+    return "coco"
+
+
+@router.post("/payment")
+async def payment_reservation(request: ConfirmReservationRequest):
+    flow = SimpleReservationFlow()
+    flow.set_data(
+        reservation_id=request.reservation_id,
+        primary_guest=request.primary_guest.dict(),
+        payment=request.payment.dict(),
+    )
+    result = await flow.run_payment_flow()
+    return result
+

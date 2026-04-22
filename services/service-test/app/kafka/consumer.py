@@ -38,7 +38,7 @@ async def start_consumer(
     if not kafka_local:
         sasl_config = {
             "sasl_mechanism": "SCRAM-SHA-256",
-            "security_protocol": "SASL_SSL",
+            "security_protocol": "SASL_PLAINTEXT",
             "sasl_plain_username": os.getenv("KAFKA_USERNAME", ""),
             "sasl_plain_password": os.getenv("KAFKA_PASSWORD", ""),
         }

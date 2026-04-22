@@ -4,33 +4,40 @@ import json
 import logging
 import os
 from aiokafka import AIOKafkaProducer
+from datetime import date, datetime
 
 TOPIC_REQUESTS = "user-validation-requests"
 TOPIC_STEP_EVENTS = "step-change-events"
 TOPIC_RESERVATION_VALIDATE = "reservation-validate-requests"
 TOPIC_AWS_TEST = "aws-test-messages"
+TOPIC_PRUEBA = "prueba-requests"
 
 _producer: AIOKafkaProducer | None = None
 
 
+# producer.py
 async def start_producer(
         bootstrap_servers: str,
         use_ssl: bool = False,
         username: str = "",
         password: str = ""
 ):
-    """Inicia el productor de Kafka con soporte para SASL/SSL en AWS."""
     global _producer
+
+    kafka_local = os.getenv("KAFKA_LOCAL", "false").lower() == "true"
 
     config = {
         "bootstrap_servers": bootstrap_servers,
     }
 
+    if not kafka_local:
+        config["sasl_mechanism"] = "SCRAM-SHA-256"
+        config["security_protocol"] = "SASL_SSL"  # AWS MSK usa SSL
+        config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME")
+        config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD")
+    else:
+        config["sasl_mechanism"] = "PLAIN"
 
-    config["sasl_mechanism"] = "SCRAM-SHA-256"
-    config["security_protocol"] = "SASL_PLAINTEXT"
-    config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME")
-    config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD")
 
 
     _producer = AIOKafkaProducer(**config)
@@ -129,3 +136,23 @@ async def publish_test_message(
     logging.info(
         f"[service-core Producer] mensaje de prueba AWS enviado → correlation_id={correlation_id}, priority={priority}"
     )
+
+async def publish_prueba(mensaje: str, metadata: dict = None) -> str:
+        """Publica mensaje en prueba-requests y retorna correlation_id."""
+        if _producer is None:
+            raise RuntimeError("Kafka producer no inicializado")
+
+        import uuid
+        cid = str(uuid.uuid4())
+
+        payload = json.dumps({
+            "event": "prueba_message",
+            "correlation_id": cid,
+            "mensaje": mensaje,
+            "metadata": metadata or {},
+            "timestamp": datetime.utcnow().isoformat(),
+        }).encode("utf-8")
+
+        await _producer.send_and_wait(TOPIC_PRUEBA, payload)
+        logging.info(f"[service-core Producer] prueba enviada → correlation_id={cid[:8]}...")
+        return cid

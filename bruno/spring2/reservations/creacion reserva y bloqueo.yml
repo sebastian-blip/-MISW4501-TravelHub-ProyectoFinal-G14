@@ -1,5 +1,5 @@
 info:
-  name: create flow (validate + create)
+  name: "creacion reserva y bloqueo "
   type: http
   seq: 1
 
@@ -15,8 +15,8 @@ http:
       {
         "hotel_id": "b1000000-0000-0000-0000-000000000001",
         "room_type_id": "c1000000-0000-0000-0000-000000000101",
-        "check_in": "2026-05-01",
-        "check_out": "2026-05-05",
+        "check_in": "2026-05-03",
+        "check_out": "2026-05-06",
         "guests": 2,
         "base_price": "500.00",
         "taxes": "50.00",

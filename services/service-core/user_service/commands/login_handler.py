@@ -25,4 +25,4 @@ async def handle_login(command: LoginCommand) -> LoginResponse:
         "user_type": user.user_type,
     })
 
-    return LoginResponse(access_token=token, token_type="bearer")
+    return LoginResponse(access_token=token, token_type="bearer", user_type=user.user_type)

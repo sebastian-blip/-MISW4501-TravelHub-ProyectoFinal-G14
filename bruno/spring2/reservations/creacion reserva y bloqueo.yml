@@ -15,7 +15,7 @@ http:
       {
         "hotel_id": "b1000000-0000-0000-0000-000000000001",
         "room_type_id": "c1000000-0000-0000-0000-000000000101",
-        "check_in": "2026-05-03",
+        "check_in": "2026-05-05",
         "check_out": "2026-05-06",
         "guests": 2,
         "base_price": "500.00",
@@ -32,3 +32,92 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+examples:
+  - name: example
+    request:
+      url: "{{local_core}}/reservation-flow/create"
+      method: POST
+      headers:
+        - name: X-Guest-Id
+          value: e6c08603-969f-488a-a858-5a626dff8c5d
+      body:
+        type: json
+        data: |-
+          {
+            "hotel_id": "b1000000-0000-0000-0000-000000000001",
+            "room_type_id": "c1000000-0000-0000-0000-000000000101",
+            "check_in": "2026-05-05",
+            "check_out": "2026-05-06",
+            "guests": 2,
+            "base_price": "500.00",
+            "taxes": "50.00",
+            "discounts": "25.00",
+            "total_price": "525.00",
+            "currency_code": "USD",
+            "special_requests": "Habitación con vista al mar"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: date
+          value: Wed, 22 Apr 2026 00:28:51 GMT
+        - name: server
+          value: uvicorn
+        - name: content-length
+          value: "1198"
+        - name: content-type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "completed": true,
+            "step": "create",
+            "history": [
+              "validate",
+              "create"
+            ],
+            "validate": {
+              "from_kafka": true,
+              "message": "agenda disponible. OK para cancelar."
+            },
+            "result": {
+              "success": true,
+              "proceed": true,
+              "confirmation_code": "RES4EA16982",
+              "reservation_id": "a9fe3f49-a6c7-43f6-8e91-3e25a4e8915a",
+              "status": "pending",
+              "message": "Reservación creada exitosamente con código RES4EA16982",
+              "hotel": {
+                "id": "b1000000-0000-0000-0000-000000000001",
+                "name": "Hotel Andino Bogotá",
+                "description": "Hotel boutique ubicado en el corazón de la Zona Rosa de Bogotá. Combina el estilo colonial con comodidades modernas, a pasos de los mejores restaurantes y centros comerciales de la ciudad.",
+                "address": "Calle 82 #11-37, Zona Rosa",
+                "city": "Bogotá",
+                "stars": 4,
+                "rating": "4.5"
+              },
+              "room_type": {
+                "id": "c1000000-0000-0000-0000-000000000101",
+                "name": "Habitación Estándar",
+                "description": "Habitación acogedora con cama doble o twin, baño privado, minibar y vista al jardín interior.",
+                "max_capacity": 2,
+                "bed_type": "queen",
+                "size_sqm": "22.0"
+              },
+              "pricing": {
+                "nights": 1,
+                "guests": 2,
+                "price_per_night": "525.00",
+                "subtotal": "525.00",
+                "taxes": "50.00",
+                "discounts": "25.00",
+                "total": "525.00",
+                "currency_code": "USD"
+              },
+              "check_in": "2026-05-05",
+              "check_out": "2026-05-06"
+            }
+          }

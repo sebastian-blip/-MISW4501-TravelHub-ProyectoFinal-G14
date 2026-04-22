@@ -4,10 +4,9 @@ Sin dinamismo, todo es directo y fácil de seguir.
 """
 from typing import Optional
 from datetime import date
-
-from fastapi import APIRouter, HTTPException,Header
 from pydantic import BaseModel, Field
-
+from fastapi import APIRouter, HTTPException, Header, status
+from fastapi.responses import JSONResponse
 from state_machine.simple_reservation_flow import SimpleReservationFlow
 
 router = APIRouter(prefix="/reservation-flow", tags=["Reservation Flow"])
@@ -56,17 +55,9 @@ class CancelRequest(BaseModel):
     confirmation_code: str
 
 
+
 @router.post("/create")
 async def create_reservation(request: CreateRequest, x_guest_id: str = Header(..., alias="X-Guest-Id")):
-    """
-    Flujo: validate → create.
-    
-    1. Valida si existe reserva duplicada (solapamiento de fechas)
-    2. Si no existe, la crea con guest principal y pago
-    3. Retorna confirmation_code o error
-    """
-
-
     try:
         flow = SimpleReservationFlow()
         flow.set_data(
@@ -86,11 +77,20 @@ async def create_reservation(request: CreateRequest, x_guest_id: str = Header(..
             special_requests=request.special_requests,
             user_guest_id=x_guest_id,
         )
-        
+
         result = await flow.run_create_flow()
-        
-        return result
-        
+
+        if not result["completed"]:
+            return JSONResponse(
+                status_code=status.HTTP_409_CONFLICT,
+                content=result
+            )
+
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content=result
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

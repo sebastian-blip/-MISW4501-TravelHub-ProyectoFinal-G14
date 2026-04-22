@@ -20,3 +20,36 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+examples:
+  - name: example
+    request:
+      url: http://0.0.0.0:8000/auth/login
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "admin.bogota@travelhub.com",
+            "password": "$2b$12$placeholderHashBogota"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: date
+          value: Wed, 22 Apr 2026 00:10:45 GMT
+        - name: server
+          value: uvicorn
+        - name: content-length
+          value: "322"
+        - name: content-type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZW1haWwiOiJhZG1pbi5ib2dvdGFAdHJhdmVsaHViLmNvbSIsInVzZXJfdHlwZSI6ImhvdGVsX2FkbWluIiwiZXhwIjoxNzc2ODIwMjQ2fQ.C4-UU_dNaB0E_ObQm4DuVdS7V3klgFwbkTd7k7VpLtA",
+            "token_type": "bearer",
+            "user_type": "hotel_admin"
+          }

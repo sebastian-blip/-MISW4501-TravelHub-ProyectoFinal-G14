@@ -10,12 +10,12 @@ http:
     type: json
     data: |-
       {
-        "email": "pepe1@gmail.com",
+        "email": "pepe131@gmail.com",
         "password": "chepper",
         "first_name": "Miguel",
         "last_name": "Moreno",
         "user_type": "traveler",
-        "phone": "+573001234567",
+        "phone": "",
         "country_id": null
       }
   auth: inherit
@@ -25,3 +25,43 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+examples:
+  - name: example
+    request:
+      url: http://0.0.0.0:8000/auth/register
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "pepe131@gmail.com",
+            "password": "chepper",
+            "first_name": "Miguel",
+            "last_name": "Moreno",
+            "user_type": "traveler",
+            "phone": "",
+            "country_id": null
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: date
+          value: Wed, 22 Apr 2026 00:11:32 GMT
+        - name: server
+          value: uvicorn
+        - name: content-length
+          value: "139"
+        - name: content-type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "0ad53873-e954-4fc5-8b77-6c093d7590a2",
+            "email": "pepe131@gmail.com",
+            "first_name": "Miguel",
+            "last_name": "Moreno",
+            "user_type": "traveler"
+          }

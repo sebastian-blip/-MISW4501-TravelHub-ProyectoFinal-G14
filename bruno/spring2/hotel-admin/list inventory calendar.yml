@@ -18,16 +18,16 @@ http:
       type: query
   auth:
     type: bearer
-    token: "{{token}}"
+    token: "{{token_admin}}"
 
 runtime:
   variables:
     - name: start_date
-      value: "2026-05-01"
+      value: 2026-05-01
     - name: end_date
-      value: "2026-05-07"
+      value: 2026-05-07
     - name: room_type_id
-      value: "c1000000-0000-0000-0000-000000000101"
+      value: c1000000-0000-0000-0000-000000000101
 
 settings:
   encodeUrl: true

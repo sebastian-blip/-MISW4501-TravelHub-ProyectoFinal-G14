@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{local_core}}/hotel-admin/reservations/count?start_date={{start_date}}&end_date={{end_date}}"
+  url: "{{local_core}}/hotel-admin/reservations?start_date={{start_date}}&end_date={{end_date}}&status=confirmed"
   params:
     - name: start_date
       value: "{{start_date}}"
@@ -13,19 +13,87 @@ http:
     - name: end_date
       value: "{{end_date}}"
       type: query
+    - name: status
+      value: confirmed
+      type: query
   auth:
     type: bearer
-    token: "{{token}}"
+    token: "{{token_admin}}"
 
 runtime:
   variables:
     - name: start_date
-      value: "2026-05-01"
+      value: 2026-05-03
     - name: end_date
-      value: "2026-05-31"
+      value: 2026-05-31
 
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+examples:
+  - name: example (1)
+    request:
+      url: "{{local_core}}/hotel-admin/reservations?start_date={{start_date}}&end_date={{end_date}}&status=confirmed"
+      method: GET
+      params:
+        - name: start_date
+          value: "{{start_date}}"
+          type: query
+        - name: end_date
+          value: "{{end_date}}"
+          type: query
+        - name: status
+          value: confirmed
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: date
+          value: Wed, 22 Apr 2026 00:38:29 GMT
+        - name: server
+          value: uvicorn
+        - name: content-length
+          value: "818"
+        - name: content-type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "a9fe3f49-a6c7-43f6-8e91-3e25a4e8915a",
+                "hotel_id": "b1000000-0000-0000-0000-000000000001",
+                "room_type_id": "c1000000-0000-0000-0000-000000000101",
+                "cart_id": null,
+                "check_in": "2026-05-05",
+                "check_out": "2026-05-06",
+                "guests": 2,
+                "base_price": "500.00",
+                "taxes": "50.00",
+                "discounts": "25.00",
+                "total_price": "525.00",
+                "currency_code": "USD",
+                "status": "confirmed",
+                "cancellation_policy": null,
+                "special_requests": "Habitación con vista al mar",
+                "confirmation_code": "RES4EA16982",
+                "created_at": "2026-04-22T00:28:52.910774",
+                "updated_at": null,
+                "room_type": {
+                  "id": "c1000000-0000-0000-0000-000000000101",
+                  "name": "Habitación Estándar",
+                  "description": "Habitación acogedora con cama doble o twin, baño privado, minibar y vista al jardín interior.",
+                  "base_price": "85.00",
+                  "max_capacity": 2,
+                  "bed_type": "queen",
+                  "size_sqm": "22.0"
+                }
+              }
+            ],
+            "total": 1
+          }

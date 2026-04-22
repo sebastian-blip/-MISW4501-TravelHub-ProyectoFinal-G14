@@ -27,3 +27,67 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+examples:
+  - name: example
+    request:
+      url: http://0.0.0.0:8000/auth/login
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "admin.bogota@travelhub.com",
+            "password": "$2b$12$placeholderHashBogota"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: date
+          value: Wed, 22 Apr 2026 00:27:22 GMT
+        - name: server
+          value: uvicorn
+        - name: content-length
+          value: "322"
+        - name: content-type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZW1haWwiOiJhZG1pbi5ib2dvdGFAdHJhdmVsaHViLmNvbSIsInVzZXJfdHlwZSI6ImhvdGVsX2FkbWluIiwiZXhwIjoxNzc2ODIxMjQzfQ.z8QOndbXFEzb1MJOJHWd_X97z3Uiel4yt5Inz8WNNPU",
+            "token_type": "bearer",
+            "user_type": "hotel_admin"
+          }
+  - name: example (1)
+    request:
+      url: http://0.0.0.0:8000/auth/login
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "admin.bogota@travelhub.com",
+            "password": "$2b$12$placeholderHashBogota"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: date
+          value: Wed, 22 Apr 2026 00:35:01 GMT
+        - name: server
+          value: uvicorn
+        - name: content-length
+          value: "322"
+        - name: content-type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZW1haWwiOiJhZG1pbi5ib2dvdGFAdHJhdmVsaHViLmNvbSIsInVzZXJfdHlwZSI6ImhvdGVsX2FkbWluIiwiZXhwIjoxNzc2ODIxNzAxfQ.gdWjqIM9fPTXwc13Jg35OMpjhXSzgCinw959Vsrd9ho",
+            "token_type": "bearer",
+            "user_type": "hotel_admin"
+          }

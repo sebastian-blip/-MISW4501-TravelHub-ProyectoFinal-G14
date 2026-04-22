@@ -10,7 +10,7 @@ http:
     type: json
     data: |-
       {
-        "reservation_id":"937f3773-e571-48b5-9c55-5fdbce06056a",
+        "reservation_id":"a9fe3f49-a6c7-43f6-8e91-3e25a4e8915a",
         "primary_guest": {
               "first_name": "Juan",
               "last_name": "Pérez",
@@ -32,3 +32,64 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+
+examples:
+  - name: example
+    request:
+      url: "{{local_core}}/reservation-flow/payment"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "reservation_id":"a9fe3f49-a6c7-43f6-8e91-3e25a4e8915a",
+            "primary_guest": {
+                  "first_name": "Juan",
+                  "last_name": "Pérez",
+                  "document_type": "CC",
+                  "document_number": "1234567890",
+                  "nationality": "COL",
+                   "email":"coco@gmail.com" 
+              },
+              "payment": {
+                  "amount": "525.00",
+                  "currency_code": "USD",
+                  "payment_token": "tok_visa_4242424242424242"
+              }
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: date
+          value: Wed, 22 Apr 2026 00:30:24 GMT
+        - name: server
+          value: uvicorn
+        - name: content-length
+          value: "371"
+        - name: content-type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "completed": true,
+            "step": "confirm_payment",
+            "history": [
+              "validate_time",
+              "confirm_payment"
+            ],
+            "validate_time": {
+              "minutes_remaining": 3.5,
+              "message": "Reserva válida. Quedan 3.5 minutos."
+            },
+            "result": {
+              "success": true,
+              "proceed": true,
+              "confirmation_code": "RES4EA16982",
+              "status": "confirmed",
+              "payment_status": "completed",
+              "guest": "Juan Pérez",
+              "message": "Reserva confirmada exitosamente"
+            }
+          }

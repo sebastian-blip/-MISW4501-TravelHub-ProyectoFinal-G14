@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from routers.notification_router import router as notcation_router
 
@@ -10,6 +11,13 @@ app = FastAPI(
     root_path="/service-soport"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/healthz", tags=["health"], include_in_schema=False)
 def healthz():

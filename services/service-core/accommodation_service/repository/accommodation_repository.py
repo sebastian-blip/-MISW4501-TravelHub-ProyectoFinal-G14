@@ -109,85 +109,86 @@ class AccommodationRepository:
         result = await self.session.execute(hotels_sql, params)
         hotel_ids = [row["id"] for row in result.mappings().all()]
 
-        if not hotel_ids:
-            return ListHotelsResult(hotels=[])
+        if hotel_ids:
+            placeholders = ", ".join([f":hotel_id_{i}" for i in range(len(hotel_ids))])
+            hotel_id_params = {f"hotel_id_{i}": str(hid) for i, hid in enumerate(hotel_ids)}
+            all_params = {**params, **hotel_id_params}
 
-        placeholders = ", ".join([f":hotel_id_{i}" for i in range(len(hotel_ids))])
-        hotel_id_params = {f"hotel_id_{i}": str(hid) for i, hid in enumerate(hotel_ids)}
-        all_params = {**params, **hotel_id_params}
+            details_sql = text(f"""
+                SELECT
+                    h.id            AS hotel_id,
+                    h.name          AS hotel_name,
+                    h.description   AS hotel_description,
+                    h.address,
+                    h.city,
+                    h.stars,
+                    h.rating,
+                    h.check_in_time,
+                    h.check_out_time,
+                    rt.id           AS room_type_id,
+                    rt.name         AS room_type_name,
+                    rt.description  AS room_type_description,
+                    rt.max_capacity,
+                    rt.bed_type,
+                    rt.size_sqm,
+                    ic.currency_code,
+                    SUM(ic.price_per_night)          AS total_price,
+                    ROUND(SUM(ic.price_per_night) / :nights, 2) AS price_per_night,
+                    MAX(ic.minimum_stay)             AS minimum_stay
+                FROM hotels h
+                JOIN room_types rt
+                  ON rt.hotel_id = h.id
+                 AND rt.active = true
+                 AND rt.max_capacity >= :guests
+                JOIN inventory_calendar ic
+                  ON ic.room_type_id = rt.id
+                 AND ic.date >= :check_in
+                 AND ic.date < :check_out
+                 AND ic.available_units > 0
+                WHERE h.id IN ({placeholders})
+                GROUP BY
+                    h.id, h.name, h.description, h.address, h.city,
+                    h.stars, h.rating, h.check_in_time, h.check_out_time,
+                    rt.id, rt.name, rt.description, rt.max_capacity,
+                    rt.bed_type, rt.size_sqm, ic.currency_code
+                ORDER BY h.rating DESC NULLS LAST, total_price ASC
+            """)
 
-        details_sql = text(f"""
-            SELECT
-                h.id            AS hotel_id,
-                h.name          AS hotel_name,
-                h.description   AS hotel_description,
-                h.address,
-                h.city,
-                h.stars,
-                h.rating,
-                h.check_in_time,
-                h.check_out_time,
-                rt.id           AS room_type_id,
-                rt.name         AS room_type_name,
-                rt.description  AS room_type_description,
-                rt.max_capacity,
-                rt.bed_type,
-                rt.size_sqm,
-                ic.currency_code,
-                SUM(ic.price_per_night)          AS total_price,
-                ROUND(SUM(ic.price_per_night) / :nights, 2) AS price_per_night,
-                MAX(ic.minimum_stay)             AS minimum_stay
-            FROM hotels h
-            JOIN room_types rt
-              ON rt.hotel_id = h.id
-             AND rt.active = true
-             AND rt.max_capacity >= :guests
-            JOIN inventory_calendar ic
-              ON ic.room_type_id = rt.id
-             AND ic.date >= :check_in
-             AND ic.date < :check_out
-             AND ic.available_units > 0
-            WHERE h.id IN ({placeholders})
-            GROUP BY
-                h.id, h.name, h.description, h.address, h.city,
-                h.stars, h.rating, h.check_in_time, h.check_out_time,
-                rt.id, rt.name, rt.description, rt.max_capacity,
-                rt.bed_type, rt.size_sqm, ic.currency_code
-            ORDER BY h.rating DESC NULLS LAST, total_price ASC
-        """)
+            result_details = await self.session.execute(details_sql, all_params)
+            rows = result_details.mappings().all()
 
-        result_details = await self.session.execute(details_sql, all_params)
-        rows = result_details.mappings().all()
-
-        # OBTENER AMENITIES para cada room_type (no necesitas filtrar en Python)
-        room_type_ids = [str(row["room_type_id"]) for row in rows]
-        amenities_map = {}
-        if room_type_ids:
-            amenities_sql = text(
-                """
-                SELECT room_type_id,
-                       name,
-                       icon
-                FROM room_amenities
-                WHERE room_type_id = ANY (:room_type_ids)
-                ORDER BY name
-                """
-            )
-            amenities_result = await self.session.execute(
-                amenities_sql, {"room_type_ids": room_type_ids}
-            )
-
-            for amenity_row in amenities_result.mappings().all():
-                rt_id = str(amenity_row["room_type_id"])
-                if rt_id not in amenities_map:
-                    amenities_map[rt_id] = []
-
-                amenities_map[rt_id].append(
-                    RoomAmenityInfo(
-                        name=amenity_row["name"],
-                        icon=amenity_row["icon"],
-                    )
+            # OBTENER AMENITIES para cada room_type (no necesitas filtrar en Python)
+            room_type_ids = [str(row["room_type_id"]) for row in rows]
+            amenities_map = {}
+            if room_type_ids:
+                amenities_sql = text(
+                    """
+                    SELECT room_type_id,
+                           name,
+                           icon
+                    FROM room_amenities
+                    WHERE room_type_id = ANY (:room_type_ids)
+                    ORDER BY name
+                    """
                 )
+                amenities_result = await self.session.execute(
+                    amenities_sql, {"room_type_ids": room_type_ids}
+                )
+
+                for amenity_row in amenities_result.mappings().all():
+                    rt_id = str(amenity_row["room_type_id"])
+                    if rt_id not in amenities_map:
+                        amenities_map[rt_id] = []
+
+                    amenities_map[rt_id].append(
+                        RoomAmenityInfo(
+                            name=amenity_row["name"],
+                            icon=amenity_row["icon"],
+                        )
+                    )
+            items = self._build_results(rows, amenities_map)
+        else:
+            items = []
 
         total = await self.search_count(params, where_clause, having_clauses, amenities)
 
@@ -195,7 +196,7 @@ class AccommodationRepository:
             total=total,
             page=page,
             page_size=page_size,
-            items=self._build_results(rows, amenities_map),
+            items=items
 
         )
         return result_search

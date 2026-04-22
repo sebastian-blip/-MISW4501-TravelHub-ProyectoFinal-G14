@@ -103,7 +103,6 @@ async def search_accommodations(
             SearchAccommodationsQuery(**filters_search
             )
         )
-        hotels_result = data_results.items
 
         return {
             "user_session": str(ses),
@@ -141,7 +140,7 @@ async def search_accommodations(
                         for rt in r.available_room_types
                     ],
                 )
-                for r in hotels_result
+                for r in data_results.items
             ]
         }
     except ValueError as e:

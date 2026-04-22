@@ -22,7 +22,7 @@ spec:
 
       containers:
         - name: service-core
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:ddefb628ec78b06af70046b24227449e0ed0ffeb
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:28e82f876a3f90fe6a94d283acc791d68deab75a
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

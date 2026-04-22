@@ -1,7 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()
 import os
 
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
+from routers.notification_router import router as notcation_router
 
 app = FastAPI(
     title="TravelHub API",
@@ -23,3 +26,9 @@ def readyz():
     bd = os.getenv("POSTGRES_HOST")
     return {"status": bd}
 
+app.include_router(notcation_router)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

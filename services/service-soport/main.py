@@ -1,10 +1,8 @@
-from dotenv import load_dotenv
-load_dotenv()
 import os
+from fastapi import FastAPI
 
-from fastapi import FastAPI, status
-from fastapi.responses import JSONResponse
 from routers.notification_router import router as notcation_router
+
 
 app = FastAPI(
     title="TravelHub API",
@@ -27,6 +25,7 @@ def readyz():
     return {"status": bd}
 
 app.include_router(notcation_router)
+
 
 
 if __name__ == "__main__":

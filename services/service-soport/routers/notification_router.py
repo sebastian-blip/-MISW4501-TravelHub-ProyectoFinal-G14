@@ -1,18 +1,15 @@
-from dotenv import load_dotenv
-load_dotenv()
 import resend
-import os
 from typing import Optional
 from pydantic import BaseModel
 
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from notification_service.email_handler import send_email_notification
-
 from fastapi import APIRouter
+from config import settings
 
-resend.api_key = os.getenv("RESEND_API_KEY")
-API_BEARER_TOKEN = os.getenv("TOKEN_SOPORT_SERVICES")
+resend.api_key = settings.RESEND_API_KEY
+API_BEARER_TOKEN = settings.TOKEN_SOPORT_SERVICES
 security = HTTPBearer()
 
 

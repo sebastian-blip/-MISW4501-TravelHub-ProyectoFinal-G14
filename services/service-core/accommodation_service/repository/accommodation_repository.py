@@ -31,6 +31,8 @@ class AccommodationRepository:
         page: int = 1,
         page_size: int = 20,
     ) -> ListHotelsResult:
+
+
         nights = (check_out - check_in).days
 
         filters = [
@@ -39,25 +41,82 @@ class AccommodationRepository:
         ]
         if min_stars:
             filters.append("h.stars >= :min_stars")
-        # YA NO filtramos price_min/price_max aquí.
-
         where_clause = "\n  AND ".join(filters)
-
-        amenities_join = ""
         having_clauses = [
             "COUNT(ic.date) = :nights",
             ":nights >= MAX(ic.minimum_stay)"
         ]
-
         if price_min is not None:
             having_clauses.append("SUM(ic.price_per_night) >= :price_min")
         if price_max is not None:
             having_clauses.append("SUM(ic.price_per_night) <= :price_max")
 
-        having_sql = " AND ".join(having_clauses)
-        offset = (page - 1) * page_size
+        hotels_sql = text("""
+            SELECT h.id
+            FROM hotels h
+            WHERE
+              LOWER(h.city) = LOWER(:city)
+              AND h.active = true
+              {min_stars_clause}
+              AND EXISTS (
+                SELECT 1 FROM room_types rt
+                WHERE rt.hotel_id = h.id
+                  AND rt.active = true
+                  AND rt.max_capacity >= :guests
+                  AND EXISTS (
+                    SELECT 1 FROM inventory_calendar ic
+                    WHERE ic.room_type_id = rt.id
+                      AND ic.date >= :check_in
+                      AND ic.date < :check_out
+                      AND ic.available_units > 0
+                  )
+                  {amenities_subquery}
+              )
+            ORDER BY h.rating DESC NULLS LAST
+            LIMIT :limit OFFSET :offset
+        """.format(
+            min_stars_clause="AND h.stars >= :min_stars" if min_stars else "",
+            amenities_subquery=(
+                """
+                AND (
+                    SELECT COUNT(DISTINCT ra.name)
+                    FROM room_amenities ra
+                    WHERE ra.room_type_id = rt.id
+                      AND ra.name = ANY(:amenities)
+                ) = :num_amenities
+                """ if amenities else ""
+            )
+        ))
+        params = {
+            'nights': nights,
+            "city": city,
+            "check_in": check_in,
+            "check_out": check_out,
+            "guests": guests,
+            "limit": page_size,
+            "offset": (page - 1) * page_size,
+        }
+        if price_min is not None:
+            params["price_min"] = price_min
+        if price_max is not None:
+            params["price_max"] = price_max
+        if min_stars:
+            params["min_stars"] = min_stars
+        if amenities:
+            params["amenities"] = amenities
+            params["num_amenities"] = len(amenities)
 
-        sql = text(f"""
+        result = await self.session.execute(hotels_sql, params)
+        hotel_ids = [row["id"] for row in result.mappings().all()]
+
+        if not hotel_ids:
+            return ListHotelsResult(hotels=[])
+
+        placeholders = ", ".join([f":hotel_id_{i}" for i in range(len(hotel_ids))])
+        hotel_id_params = {f"hotel_id_{i}": str(hid) for i, hid in enumerate(hotel_ids)}
+        all_params = {**params, **hotel_id_params}
+
+        details_sql = text(f"""
             SELECT
                 h.id            AS hotel_id,
                 h.name          AS hotel_name,
@@ -88,55 +147,31 @@ class AccommodationRepository:
              AND ic.date >= :check_in
              AND ic.date < :check_out
              AND ic.available_units > 0
-            {amenities_join}
-            WHERE {where_clause}
+            WHERE h.id IN ({placeholders})
             GROUP BY
                 h.id, h.name, h.description, h.address, h.city,
                 h.stars, h.rating, h.check_in_time, h.check_out_time,
                 rt.id, rt.name, rt.description, rt.max_capacity,
                 rt.bed_type, rt.size_sqm, ic.currency_code
-            HAVING {having_sql}
             ORDER BY h.rating DESC NULLS LAST, total_price ASC
-            LIMIT :limit OFFSET :offset
         """)
 
-        params = {
-            "check_in": check_in,
-            "check_out": check_out,
-            "guests": guests,
-            "city": city,
-            "nights": nights,
-            "limit": page_size,
-            "offset": offset,
-        }
+        result_details = await self.session.execute(details_sql, all_params)
+        rows = result_details.mappings().all()
 
-        if min_stars:
-            params["min_stars"] = min_stars
-        if price_min is not None:
-            params["price_min"] = price_min
-        if price_max is not None:
-            params["price_max"] = price_max
-        if amenities:
-            params["amenities"] = amenities
-
-        result = await self.session.execute(sql, params)
-        rows = result.mappings().all()
-
-        # Obtener amenities para cada room_type
+        # OBTENER AMENITIES para cada room_type (no necesitas filtrar en Python)
         room_type_ids = [str(row["room_type_id"]) for row in rows]
         amenities_map = {}
-        
         if room_type_ids:
             amenities_sql = text(
                 """
-                SELECT 
-                    room_type_id,
-                    name,
-                    icon
+                SELECT room_type_id,
+                       name,
+                       icon
                 FROM room_amenities
-                WHERE room_type_id = ANY(:room_type_ids)
+                WHERE room_type_id = ANY (:room_type_ids)
                 ORDER BY name
-            """
+                """
             )
             amenities_result = await self.session.execute(
                 amenities_sql, {"room_type_ids": room_type_ids}
@@ -153,14 +188,6 @@ class AccommodationRepository:
                         icon=amenity_row["icon"],
                     )
                 )
-
-            if amenities:
-                amenities_map_filter =  amenities_map.copy()
-                for hotel, all_amanities_hotel in amenities_map_filter.items():
-                    names_in_list = set(a.name for a in all_amanities_hotel)
-                    if not set(amenities).issubset(names_in_list):
-                        amenities_map.pop(hotel)
-
 
         total = await self.search_count(params, where_clause, having_clauses, amenities)
 

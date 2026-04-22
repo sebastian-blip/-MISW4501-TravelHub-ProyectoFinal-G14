@@ -31,6 +31,8 @@ spec:
           env:
             - name: POSTGRES_DB
               value: "postgres"
+            - name: KAFKA_LOCAL
+              value: "true"
 
           envFrom:
             - secretRef:

@@ -35,7 +35,7 @@ jobs:
             COMMITS=$(git log $RANGE --pretty=format:"%H")
           fi
 
-          ALLOWED_REGEX="^(Merge|feature|feat|fix|hotfix|bugfix|breakingchange)(\\(|!|:)?.*"
+          ALLOWED_REGEX="^(block|Merge|feature|feat|fix|hotfix|bugfix|breakingchange)(\\(|!|:)?.*"
           INVALID_COMMIT_MSGS=""
 
           for sha in $COMMITS; do

@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import text
@@ -23,6 +23,10 @@ class AccommodationRepository:
         check_in: date,
         check_out: date,
         guests: int,
+        amenities: Optional[List[str]] = None,  # ["Piscina", "WiFi", ...]
+        price_min: Optional[float] = None,
+        price_max: Optional[float] = None,
+        min_stars: Optional[int] = None,
     ) -> List[AccommodationSearchResult]:
         nights = (check_out - check_in).days
 

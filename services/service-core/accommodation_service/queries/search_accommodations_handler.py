@@ -1,9 +1,9 @@
 from mediatr import Mediator
-
+from dataclasses import asdict
 from infrastructure.database import async_session_maker
 from accommodation_service.queries.accommodation_queries import (
     SearchAccommodationsQuery,
-    AccommodationSearchResult,
+    ListHotelsResult
 )
 from accommodation_service.repository.accommodation_repository import AccommodationRepository
 from typing import List
@@ -12,7 +12,7 @@ from typing import List
 @Mediator.handler
 class SearchAccommodationsHandler:
 
-    async def handle(self, query: SearchAccommodationsQuery) -> List[AccommodationSearchResult]:
+    async def handle(self, query: SearchAccommodationsQuery) -> ListHotelsResult:
         if query.check_out <= query.check_in:
             raise ValueError("check_out debe ser posterior a check_in")
         if query.guests < 1:
@@ -21,8 +21,5 @@ class SearchAccommodationsHandler:
         async with async_session_maker() as session:
             repository = AccommodationRepository(session)
             return await repository.search(
-                city=query.city,
-                check_in=query.check_in,
-                check_out=query.check_out,
-                guests=query.guests,
+               **asdict(query)
             )

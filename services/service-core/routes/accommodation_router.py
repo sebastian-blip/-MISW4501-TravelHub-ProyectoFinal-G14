@@ -60,6 +60,12 @@ class AccommodationSearchResultOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class AccommodationSearchFilters(BaseModel):
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    min_stars: Optional[int] = None
+    page: int = 1
+    page_size: int = 20
 
 def get_mediator() -> Mediator:
     return Mediator()
@@ -67,6 +73,10 @@ def get_mediator() -> Mediator:
 
 @router.get("/search")
 async def search_accommodations(
+    filters:  AccommodationSearchFilters = Depends(),
+    amenities: Optional[List[str]] = Query(
+        None, description="Lista de amenidades requeridas (repite este parámetro para más de una)"
+    ),
     city: str = Query(..., description="Ciudad de destino"),
     check_in: date = Query(..., description="Fecha de check-in (YYYY-MM-DD)"),
     check_out: date = Query(..., description="Fecha de check-out (YYYY-MM-DD)"),
@@ -82,18 +92,23 @@ async def search_accommodations(
 
         session_handler = SessionHandler()
         ses =await session_handler.get_session(x_guest_id)
-
-        results = await mediator.send(
-            SearchAccommodationsQuery(
-                city=city,
-                check_in=check_in,
-                check_out=check_out,
-                guests=guests,
+        filters_search = filters.model_dump()
+        filters_search['city'] = city
+        filters_search['check_in'] = check_in
+        filters_search['check_out'] = check_out
+        filters_search['guests'] = guests
+        if amenities:
+            filters_search['amenities'] = amenities
+        data_results = await mediator.send(
+            SearchAccommodationsQuery(**filters_search
             )
         )
 
         return {
             "user_session": str(ses),
+            "page": data_results.page,
+            'page_size': data_results.page_size,
+            'total': data_results.total,
             "result": [
                 AccommodationSearchResultOut(
                     hotel_id=r.hotel_id,
@@ -125,7 +140,7 @@ async def search_accommodations(
                         for rt in r.available_room_types
                     ],
                 )
-                for r in results
+                for r in data_results.items
             ]
         }
     except ValueError as e:

@@ -63,6 +63,7 @@ class TestAuthRouter:
         mock_response = {
             "access_token": "mock_jwt_token",
             "token_type": "bearer",
+            "user_type": "traveler",
         }
 
         with patch("routes.auth_router.Mediator.send", new_callable=AsyncMock, return_value=mock_response):

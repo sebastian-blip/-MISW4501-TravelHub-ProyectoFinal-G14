@@ -23,10 +23,10 @@ async def start_consumer(
     username: str = "",
     password: str = ""
 ):
-    """Inicia el consumidor de Kafka con soporte para SASL."""
     global _consumer, _producer, _task
-    
-    # Configuración base
+
+    kafka_local = os.getenv("KAFKA_LOCAL", "false").lower() == "true"
+
     producer_config = {"bootstrap_servers": bootstrap_servers}
     consumer_config = {
         "bootstrap_servers": bootstrap_servers,
@@ -34,19 +34,23 @@ async def start_consumer(
         "auto_offset_reset": "earliest",
         "enable_auto_commit": True,
     }
-    
-    # Configuración SASL para AWS
-    if use_ssl and username and password:
+
+    if not kafka_local:
         sasl_config = {
             "sasl_mechanism": "SCRAM-SHA-256",
-            "security_protocol": "SASL_PLAINTEXT",
-            "sasl_plain_username": username,
-            "sasl_plain_password": password,
+            "security_protocol": "SASL_SSL",
+            "sasl_plain_username": os.getenv("KAFKA_USERNAME", ""),
+            "sasl_plain_password": os.getenv("KAFKA_PASSWORD", ""),
         }
-        
         producer_config.update(sasl_config)
         consumer_config.update(sasl_config)
-    
+    else:
+        plaintext_config = {
+            "security_protocol": "PLAINTEXT",
+        }
+        producer_config.update(plaintext_config)
+        consumer_config.update(plaintext_config)
+
     _producer = AIOKafkaProducer(**producer_config)
     await _producer.start()
 

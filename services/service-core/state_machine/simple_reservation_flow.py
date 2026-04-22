@@ -2,27 +2,30 @@
 Flujo simple de reservación: validate → create → cancelation
 Sin dinamismo, pasos fijos y explícitos.
 """
+import uuid
 from typing import Optional, Dict, Any
 from uuid import UUID
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 
 from mediatr import Mediator
 from reservation_service.commands import CreateReservationCommand, UpdateReservationStatusCommand
-from reservation_service.queries import GetReservationByCodeQuery
+from reservation_service.queries import GetReservationByCodeQuery , GetReservationByIdHandler , GetReservationByIdQuery
+from .event_machine import EventMachine
+from infrastructure.messaging.kafka.producer import publish_reservation_validate
+from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
+from infrastructure.database import async_session_maker
 
 
 class SimpleReservationFlow:
-    """
-    Flujo de reservación con pasos fijos.
-    No usa reflection, todo es explícito.
-    """
-    
+
+
     def __init__(self):
         self.mediator = Mediator()
         self.context: Dict[str, Any] = {}
         self.current_step = "validate"
         self.history = ["validate"]
+        self.event = EventMachine(wait_for_reply, async_session_maker)
     
     def set_data(self, **kwargs):
         """Guarda datos para el flujo."""
@@ -30,28 +33,15 @@ class SimpleReservationFlow:
     
     # ========== PASO 1: VALIDATE ==========
     async def step_validate(self) -> Dict[str, Any]:
-        """
-        Paso 1: Valida vía Kafka (service-external / PMS) y luego solapamiento en BD.
-        Flujo:
-        1. Publica solicitud en Kafka y espera respuesta (exists / mensaje).
-        2. Si exists=true (sin disponibilidad PMS u otro bloqueo externo): proceed=false, no crear.
-        3. Si exists=false: consulta BD por solapamiento de fechas; si hay solapamiento, proceed=false.
-        4. Si no hay bloqueo: proceed=true.
-        """
         import uuid
-        from sqlalchemy import select, and_
-        from infrastructure.database import async_session_maker
-        from domain.models.reservation import Reservation
-        from infrastructure.messaging.kafka.producer import publish_reservation_validate
-        from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
-        
+
         user_id = self.context.get("user_id")
         hotel_id = self.context.get("hotel_id")
         room_type_id = self.context.get("room_type_id")
         check_in = self.context.get("check_in")
         check_out = self.context.get("check_out")
-        
-        # user_id es opcional (puede ser reserva de invitado/guest)
+
+
         required_fields = ["hotel_id", "room_type_id", "check_in", "check_out"]
         if not all([hotel_id, room_type_id, check_in, check_out]):
             return {
@@ -60,90 +50,21 @@ class SimpleReservationFlow:
                 "error": "Faltan datos obligatorios",
                 "missing": [k for k in required_fields if not self.context.get(k)]
             }
-        
-        print(f"[Flow] Paso 1 - Solicitando validación a service-test: user={user_id}")
-        
+
         correlation_id = str(uuid.uuid4())
-        from_kafka = False  # Inicializar por si falla Kafka
-        try:
-            await publish_reservation_validate(
-                user_id=user_id,
-                hotel_id=hotel_id,
-                room_type_id=room_type_id,
-                check_in=str(check_in),
-                check_out=str(check_out),
-                correlation_id=correlation_id
-            )
+        result = await self.event.validate_reservation(publish_reservation_validate,correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
+        )
 
-            # 2. Esperar respuesta de service-test (timeout 5 segundos)
-            print(f"[Flow] Esperando respuesta de service-test (correlation_id={correlation_id[:8]}...)")
-            reply = await wait_for_reply(correlation_id, timeout=5.0)
+        if result is None:
+            return {
+                "success": True,
+                "proceed": True,
+                "exists": False,
+                "from_kafka": False,
+                "message": "Kafka no disponible, sin validación externa."
+            }
 
-            exists = reply.get("exists", False)
-            from_kafka = True
-            print(f"[Flow] service-external/Kafka respondió: exists={exists}")
-
-            if exists:
-                msg = reply.get("message")
-                return {
-                    "success": True,
-                    "proceed": False,
-                    "exists": True,
-                    "overlap": False,
-                    "from_kafka": True,
-                    "pms_blocked": True,
-                    "message": (str(msg).strip() if msg else "")
-                    or "Validación externa (PMS/Kafka): no es posible crear la reserva.",
-                }
-
-        except Exception as e:
-            print(f"[Flow] Error en comunicación con service-test: {e}")
-            # Si falla Kafka, continuamos con validación local (fallback)
-            exists = False
-
-        # 4. Consultar BD - Validar que no exista solapamiento de fechas para la misma habitación
-        # async with async_session_maker() as session:
-        #     # Lógica de solapamiento:
-        #     # Hay solapamiento si: nueva_check_in < existente_check_out AND nueva_check_out > existente_check_in
-        #     stmt = select(Reservation).where(
-        #         and_(
-        #             Reservation.hotel_id == UUID(hotel_id),
-        #             Reservation.room_type_id == UUID(room_type_id),
-        #             Reservation.check_in < check_out,      # La existente empieza antes de que termine la nueva
-        #             Reservation.check_out > check_in,      # La existente termina después de que empiece la nueva
-        #             Reservation.status.in_(["pending", "confirmed"])
-        #         )
-        #     )
-        #     result = await session.execute(stmt)
-        #     # Puede haber múltiples, tomamos el primero
-        #     existing = result.scalars().first()
-        #
-        #     if existing:
-        #         return {
-        #             "success": True,
-        #             "proceed": False,  # No continuar, fechas solapadas
-        #             "exists": True,
-        #             "overlap": True,  # Indica solapamiento de fechas
-        #             "from_kafka": from_kafka,
-        #             "confirmation_code": existing.confirmation_code,
-        #             "message": f"La habitación ya está reservada en esas fechas. Reserva existente: {existing.confirmation_code}",
-        #             "reservation": {
-        #                 "id": str(existing.id),
-        #                 "status": existing.status,
-        #                 "check_in": str(existing.check_in),
-        #                 "check_out": str(existing.check_out),
-        #                 "total_price": str(existing.total_price)
-        #             }
-        #         }
-        
-        # No existe en BD, podemos continuar
-        return {
-            "success": True,
-            "proceed": True,  # Continuar al siguiente paso
-            "exists": False,
-            "from_kafka": from_kafka,
-            "message": "No existe reserva. OK para crear."
-        }
+        return result
     
     # ========== PASO 2: CREATE ==========
     async def step_create(self) -> Dict[str, Any]:
@@ -176,8 +97,6 @@ class SimpleReservationFlow:
                 room_type_id=UUID(self.context["room_type_id"]),
                 check_in=self.context["check_in"],
                 check_out=self.context["check_out"],
-                primary_guest=self.context.get("primary_guest"),
-                payment=self.context.get("payment"),
                 guests=self.context.get("guests", 1),
                 base_price=base,
                 taxes=taxes,
@@ -336,3 +255,228 @@ class SimpleReservationFlow:
             "step": "cancelation",
             "result": result
         }
+
+    async def data_flow(self):
+
+       try :
+            query = GetReservationByIdQuery(reservation_id=UUID(self.context["reservation_id"]))
+            reservation = await self.mediator.send_async(query)
+
+            print(reservation)
+
+            return {
+                "completed": True,
+                "step": "cancelation",
+            }
+
+       except Exception as e:
+
+
+            return {
+                "completed": False,
+            }
+
+    async def step_validate_time(self) -> Dict[str, Any]:
+        from datetime import timezone, timedelta
+        from sqlalchemy import select, and_
+        from domain.models.reservation import Reservation
+        from domain.models.inventory_calendar import InventoryCalendar
+
+        reservation_id = self.context.get("reservation_id")
+
+        if not reservation_id:
+            return {
+                "success": False,
+                "proceed": False,
+                "error": "No hay reservation_id en contexto"
+            }
+
+        try:
+            async with async_session_maker() as session:
+                result = await session.execute(
+                    select(Reservation).where(Reservation.id == UUID(reservation_id))
+                )
+                reservation = result.scalars().first()
+
+                if not reservation:
+                    return {
+                        "success": False,
+                        "proceed": False,
+                        "error": "Reserva no encontrada"
+                    }
+
+                if reservation.status == "confirmed":
+                    return {
+                        "success": False,
+                        "proceed": False,
+                        "error": "La reserva ya está confirmada",
+                        "confirmation_code": reservation.confirmation_code
+                    }
+
+                if reservation.status == "cancelled":
+                    return {
+                        "success": False,
+                        "proceed": False,
+                        "error": "No se puede confirmar una reserva cancelada",
+                        "confirmation_code": reservation.confirmation_code
+                    }
+
+                ahora = datetime.now(timezone.utc)
+                created = reservation.created_at.replace(tzinfo=timezone.utc)
+                diferencia = (ahora - created).total_seconds() / 60
+
+                if diferencia > 5:
+                    # 1. Cancelar reserva
+                    reservation.status = "cancelled"
+
+                    # 2. Liberar disponibilidad por fechas
+                    fecha = reservation.check_in
+                    while fecha < reservation.check_out:
+                        inv_result = await session.execute(
+                            select(InventoryCalendar).where(
+                                and_(
+                                    InventoryCalendar.room_type_id == reservation.room_type_id,
+                                    InventoryCalendar.date == fecha
+                                )
+                            )
+                        )
+                        inventory = inv_result.scalars().first()
+                        if inventory:
+                            inventory.available_units += 1
+
+                        fecha += timedelta(days=1)
+
+                    await session.commit()
+
+                    return {
+                        "success": True,
+                        "proceed": False,
+                        "expired": True,
+                        "message": f"Reserva expirada ({diferencia:.1f} min). Cancelada y disponibilidad liberada."
+                    }
+
+                return {
+                    "success": True,
+                    "proceed": True,
+                    "expired": False,
+                    "minutes_remaining": round(5 - diferencia, 1),
+                    "message": f"Reserva válida. Quedan {round(5 - diferencia, 1)} minutos."
+                }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "proceed": False,
+                "error": str(e)
+            }
+
+    async def run_payment_flow(self) -> Dict[str, Any]:
+        self.current_step = "validate_time"
+        self.history = ["validate_time"]
+
+        step1 = await self.step_validate_time()
+
+        if not step1["proceed"]:
+            return {"completed": False, "step": "validate_time", "result": step1}
+
+        self.current_step = "confirm_payment"
+        self.history.append("confirm_payment")
+
+        step2 = await self.step_confirm_payment()
+
+        if not step2["success"]:
+            return {"completed": False, "step": "confirm_payment", "result": step2}
+
+        return {
+            "completed": True,
+            "step": "confirm_payment",
+            "history": self.history,
+            "validate_time": {
+                "minutes_remaining": step1.get("minutes_remaining"),
+                "message": step1.get("message"),
+            },
+            "result": step2
+        }
+
+    async def step_confirm_payment(self) -> Dict[str, Any]:
+        from sqlalchemy import select
+        from domain.models.reservation import Reservation
+        from domain.models.payment import Payment
+        from domain.models.reservation_guest import ReservationGuest
+        from decimal import Decimal
+
+        reservation_id = self.context.get("reservation_id")
+        primary_guest = self.context.get("primary_guest", {})
+        payment = self.context.get("payment", {})
+
+        try:
+            async with async_session_maker() as session:
+                result = await session.execute(
+                    select(Reservation).where(Reservation.id == UUID(reservation_id))
+                )
+                reservation = result.scalars().first()
+
+                if not reservation:
+                    return {
+                        "success": False,
+                        "proceed": False,
+                        "error": "Reserva no encontrada"
+                    }
+
+                # 1. Confirmar reserva
+                reservation.status = "confirmed"
+
+                # 2. Crear pago
+                new_payment = Payment(
+                    reservation_id=UUID(reservation_id),
+                    provider_id=uuid.UUID('e1000000-0000-0000-0000-000000000002'),  # mock por ahora
+                    amount=Decimal(payment.get("amount", "0.00")),
+                    currency_code=payment.get("currency_code", "USD"),
+                    payment_token=payment.get("payment_token"),
+                    status="completed"
+                )
+                session.add(new_payment)
+
+                # 3. Crear guest principal
+                new_guest = ReservationGuest(
+                    reservation_id=UUID(reservation_id),
+                    first_name=primary_guest.get("first_name", ""),
+                    last_name=primary_guest.get("last_name", ""),
+                    document_type=primary_guest.get("document_type"),
+                    document_number=primary_guest.get("document_number"),
+                    nationality=primary_guest.get("nationality"),
+                    is_primary=True
+                )
+                session.add(new_guest)
+
+                await session.commit()
+
+                return {
+                    "success": True,
+                    "proceed": True,
+                    "confirmation_code": reservation.confirmation_code,
+                    "status": reservation.status,
+                    "payment_status": new_payment.status,
+                    "guest": f"{new_guest.first_name} {new_guest.last_name}",
+                    "message": "Reserva confirmada exitosamente"
+                }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "proceed": False,
+                "error": str(e)
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+

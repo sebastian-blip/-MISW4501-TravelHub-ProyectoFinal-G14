@@ -27,19 +27,6 @@ class TestCreateReservationHandler:
             room_type_id=uuid.UUID("c1000000-0000-0000-0000-000000000101"),
             check_in=date(2026, 5, 1),
             check_out=date(2026, 5, 5),
-            primary_guest=MagicMock(
-                first_name="Juan",
-                last_name="Pérez",
-                document_type="CC",
-                document_number="1234567890",
-                nationality="COL",
-            ),
-            payment=MagicMock(
-                amount="525.00",
-                currency_code="USD",
-                payment_token="tok_visa_4242",
-                provider_id=None,
-            ),
             guests=2,
             base_price=Decimal("500.00"),
             taxes=Decimal("50.00"),
@@ -102,8 +89,6 @@ class TestCreateReservationHandler:
         assert base_command.room_type_id is not None
         assert base_command.check_in is not None
         assert base_command.check_out is not None
-        assert base_command.primary_guest is not None
-        assert base_command.payment is not None
         
         # Verificar campos opcionales con defaults
         assert base_command.guests == 2

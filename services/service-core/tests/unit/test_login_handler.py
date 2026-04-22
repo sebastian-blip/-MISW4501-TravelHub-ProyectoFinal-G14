@@ -58,6 +58,7 @@ class TestLoginHandler:
             assert isinstance(result, LoginResponse)
             assert result.access_token == "mock_jwt_token"
             assert result.token_type == "bearer"
+            assert result.user_type == "traveler"
 
             mock_repo.get_by_email.assert_called_once_with("test@example.com")
 
@@ -109,6 +110,8 @@ class TestLoginHandler:
         response = LoginResponse(
             access_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
             token_type="bearer",
+            user_type="traveler",
         )
         assert response.access_token is not None
         assert response.token_type == "bearer"
+        assert response.user_type == "traveler"

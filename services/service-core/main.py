@@ -19,6 +19,9 @@ from routes.accommodation_router import router as accommodation_router
 from routes.reservation_router import router as reservation_router
 from routes.reservation_state_machine_router import router as reservation_flow_router
 from routes.test_router import router as test_router
+from routes.hotel_admin_router import router as hotel_admin_router
+from infrastructure.messaging.kafka.producer import publish_prueba
+from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
 
 # Configuración de Kafka
 KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true").lower() == "true"
@@ -109,6 +112,7 @@ app.include_router(accommodation_router)
 app.include_router(reservation_router)
 app.include_router(reservation_flow_router)
 app.include_router(test_router)
+app.include_router(hotel_admin_router)
 
 
 @app.get("/config/kafka")
@@ -120,6 +124,16 @@ async def get_kafka_config():
         "auth_configured": bool(KAFKA_USERNAME and KAFKA_PASSWORD)
     }
 
+from pydantic import BaseModel
+
+class PruebaRequest(BaseModel):
+    mensaje: str
+
+@app.post("/prueba/mensaje")
+async def enviar_prueba(request: PruebaRequest):
+    cid = await publish_prueba(mensaje=request.mensaje)
+    reply = await wait_for_reply(cid, timeout=5.0)
+    return reply
 
 if __name__ == "__main__":
     import uvicorn

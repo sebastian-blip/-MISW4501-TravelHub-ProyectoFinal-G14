@@ -104,33 +104,33 @@ async def handle_create_reservation(command: CreateReservationCommand) -> Create
         )
         
         # Crear el guest principal (is_primary=True)
-        primary_guest = ReservationGuest(
-            reservation_id=reservation.id,
-            first_name=command.primary_guest.first_name,
-            last_name=command.primary_guest.last_name,
-            document_type=command.primary_guest.document_type,
-            document_number=command.primary_guest.document_number,
-            nationality=command.primary_guest.nationality,
-            is_primary=True,
-        )
-        session.add(primary_guest)
+        # primary_guest = ReservationGuest(
+        #     reservation_id=reservation.id,
+        #     first_name=command.primary_guest.first_name,
+        #     last_name=command.primary_guest.last_name,
+        #     document_type=command.primary_guest.document_type,
+        #     document_number=command.primary_guest.document_number,
+        #     nationality=command.primary_guest.nationality,
+        #     is_primary=True,
+        # )
+        # session.add(primary_guest)
         
         # Crear el pago (usar provider_id fijo si no se proporciona)
-        provider_id = UUID(command.payment.provider_id) if command.payment.provider_id else UUID("e1000000-0000-0000-0000-000000000001")
-        payment = Payment(
-            reservation_id=reservation.id,
-            provider_id=provider_id,
-            amount=Decimal(command.payment.amount),
-            currency_code=command.payment.currency_code,
-            status="pending",
-            payment_token=command.payment.payment_token,
-        )
-        session.add(payment)
-        
+        # provider_id = UUID(command.payment.provider_id) if command.payment.provider_id else UUID("e1000000-0000-0000-0000-000000000001")
+        # payment = Payment(
+        #     reservation_id=reservation.id,
+        #     provider_id=provider_id,
+        #     amount=Decimal(command.payment.amount),
+        #     currency_code=command.payment.currency_code,
+        #     status="pending",
+        #     payment_token=command.payment.payment_token,
+        # )
+        # session.add(payment)
+        #
         await session.commit()
         await session.refresh(reservation)
 
-    logging.info(f"[Reservation] Creada: {reservation.confirmation_code} para usuario {reservation.user_id}")
+
 
     # Construir respuesta enriquecida
     return CreateReservationResponse(

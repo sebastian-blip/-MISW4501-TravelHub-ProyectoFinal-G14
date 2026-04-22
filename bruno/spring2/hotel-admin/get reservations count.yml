@@ -1,0 +1,31 @@
+info:
+  name: get reservations count
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{local_core}}/hotel-admin/reservations/count?start_date={{start_date}}&end_date={{end_date}}"
+  params:
+    - name: start_date
+      value: "{{start_date}}"
+      type: query
+    - name: end_date
+      value: "{{end_date}}"
+      type: query
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+runtime:
+  variables:
+    - name: start_date
+      value: "2026-05-01"
+    - name: end_date
+      value: "2026-05-31"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

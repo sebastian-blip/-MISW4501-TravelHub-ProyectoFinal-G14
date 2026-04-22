@@ -2,7 +2,6 @@ import resend
 from .template_html import html_template
 
 
-
 def send_email_notification(email, message):
 
     message = html_template.replace("{{mensaje}}", message)
@@ -14,4 +13,3 @@ def send_email_notification(email, message):
     }
 
     email = resend.Emails.send(params)
-    print(email)

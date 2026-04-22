@@ -1,5 +1,7 @@
-import os
+from dotenv import load_dotenv
+load_dotenv()
 import resend
+import os
 from typing import Optional
 from pydantic import BaseModel
 
@@ -9,8 +11,8 @@ from notification_service.email_handler import send_email_notification
 
 from fastapi import APIRouter
 
-resend.api_key = os.environ["RESEND_API_KEY"]
-API_BEARER_TOKEN = os.environ["TOKEN_SOPORT_SERVICES"]
+resend.api_key = os.getenv("RESEND_API_KEY")
+API_BEARER_TOKEN = os.getenv("TOKEN_SOPORT_SERVICES")
 security = HTTPBearer()
 
 

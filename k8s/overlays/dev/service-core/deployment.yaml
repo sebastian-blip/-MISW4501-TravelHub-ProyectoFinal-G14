@@ -22,7 +22,7 @@ spec:
 
       containers:
         - name: service-core
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:0b1b03b7ab7041a810038ffbeed7be6267a15493
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:99332f4afed291d4c2f3fabc17934f6cfd421a8a
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -32,7 +32,7 @@ spec:
             - name: POSTGRES_DB
               value: "postgres"
             - name: KAFKA_LOCAL
-              value: "true"
+              value: "false"
 
           envFrom:
             - secretRef:

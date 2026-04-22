@@ -36,7 +36,7 @@ async def start_reply_consumer(
 
     if not kafka_local:
         config["sasl_mechanism"] = "SCRAM-SHA-256"
-        config["security_protocol"] = "SASL_SSL"
+        config["security_protocol"] = "SASL_PLAINTEXT"
         config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME", "")
         config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD", "")
     else:

@@ -1,0 +1,15 @@
+info:
+  name: delete all reservations
+  type: http
+  seq: 7
+
+http:
+  method: DELETE
+  url: "{{local_core}}/reservations/all"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

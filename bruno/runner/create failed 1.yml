@@ -1,0 +1,127 @@
+info:
+  name: create failed 1
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: "{{core}}/reservation-flow/create"
+  body:
+    type: json
+    data: |-
+      {
+        "hotel_id": "{{hotel_id}}",
+        "room_type_id": "{{room_solo}}",
+        "check_in": "2026-05-01",
+        "check_out": "2026-05-05",
+        "guests": 2,
+        "base_price": "500.00",
+        "taxes": "50.00",
+        "discounts": "25.00",
+        "total_price": "525.00",
+        "currency_code": "USD",
+        "primary_guest": {
+          "first_name": "Juan",
+          "last_name": "Pérez",
+          "document_type": "CC",
+          "document_number": "1234567890",
+          "nationality": "COL"
+        },
+        "payment": {
+          "amount": "525.00",
+          "currency_code": "USD",
+          "payment_token": "tok_visa_4242424242424242"
+        },
+        "special_requests": "Habitación con vista al mar"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const roomTypeIds = JSON.parse(bru.getEnvVar("room_type_ids"));
+        const index = parseInt(bru.getEnvVar("room_type_index") || "0");
+
+        bru.setEnvVar("room_type_id", roomTypeIds[index]);
+
+        // Incrementa para la siguiente
+        bru.setEnvVar("room_type_index", String(index + 1));
+    - type: after-response
+      code: |-
+        const data = res.getBody();
+
+        if (data?.result?.reservation_id) {
+            bru.setEnvVar("reservation_id", data.result.reservation_id);
+            bru.setEnvVar("confirmation_code", data.result.confirmation_code);
+            console.log("reservation_id:", data.result.reservation_id);
+            console.log("confirmation_code:", data.result.confirmation_code);
+        }
+    - type: tests
+      code: |-
+        const data = res.getBody();
+
+        // Tests - reserva ya existe
+        test("Status 200", function() {
+            expect(res.getStatus()).to.equal(200);
+        });
+
+        test("completed es false", function() {
+            expect(data.completed).to.be.false;
+        });
+
+        test("step es validate", function() {
+            expect(data.step).to.equal("validate");
+        });
+
+        // Tests - result
+        test("result.success es true", function() {
+            expect(data.result.success).to.be.true;
+        });
+
+        test("result.proceed es false", function() {
+            expect(data.result.proceed).to.be.false;
+        });
+
+        test("result.exists es true", function() {
+            expect(data.result.exists).to.be.true;
+        });
+
+        test("result.overlap es true", function() {
+            expect(data.result.overlap).to.be.true;
+        });
+
+        test("confirmation_code existe", function() {
+            expect(data.result.confirmation_code).to.be.a("string").and.not.empty;
+        });
+
+        test("message indica reserva existente", function() {
+            expect(data.result.message).to.be.a("string").and.not.empty;
+        });
+
+        // Tests - reservation existente
+        test("reservation.id existe", function() {
+            expect(data.result.reservation.id).to.be.a("string").and.not.empty;
+        });
+
+        test("reservation.status es pending", function() {
+            expect(data.result.reservation.status).to.equal("pending");
+        });
+
+        test("reservation.check_in existe", function() {
+            expect(data.result.reservation.check_in).to.be.a("string").and.not.empty;
+        });
+
+        test("reservation.check_out existe", function() {
+            expect(data.result.reservation.check_out).to.be.a("string").and.not.empty;
+        });
+
+        test("reservation.total_price existe", function() {
+            expect(data.result.reservation.total_price).to.be.a("string").and.not.empty;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

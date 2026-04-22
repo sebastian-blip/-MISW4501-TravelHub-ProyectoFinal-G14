@@ -1,0 +1,126 @@
+name: Run Pytest per Service
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Nombre de un servicio específico (opcional)"
+        required: false
+        default: ""
+
+jobs:
+
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run tests per service and check coverage
+        id: coverage
+        run: |
+          echo "Preparing services list..."
+          
+          if [ -n "${{ github.event.inputs.service }}" ]; then
+            SERVICES="${{ github.event.inputs.service }}"
+          else
+            SERVICES=$(cat test.txt)
+          fi
+          
+          mkdir -p coverage-reports
+          
+          STATUS=0
+          
+          for service in $SERVICES
+          do
+            echo "=============================="
+            echo "Testing service: $service"
+            echo "=============================="
+          
+            SERVICE_PATH="services/$service"
+          
+            if [ -d "$SERVICE_PATH" ]; then
+              cd $SERVICE_PATH
+          
+              echo "Creating virtual environment..."
+              python -m venv venv
+              source venv/bin/activate
+          
+              echo "Installing dependencies..."
+              python -m pip install --upgrade pip
+          
+              if [ -f "requirements.txt" ]; then
+                pip install -r requirements.txt
+              fi
+              if [ -f "requirements-dev.txt" ]; then
+                pip install -r requirements-dev.txt
+              fi
+              pip install pytest pytest-cov
+          
+              echo "Running tests with coverage and HTML report..."
+              pytest --cov=. --cov-report=term-missing --cov-report=html > ../../pytest_output_$service.txt
+          
+              # Mueve el HTML coverage a una carpeta común para los artifacts
+              mv htmlcov ../../coverage-reports/htmlcov-$service
+          
+              deactivate
+              cd - > /dev/null
+            else
+              echo "❌ Service $service not found!"
+              exit 1
+            fi
+          
+          done
+          
+          echo ""
+          echo "====== Coverage summary by service ======"
+          for report in pytest_output_*.txt; do
+            service=$(echo $report | sed 's/pytest_output_\(.*\)\.txt/\1/')
+            echo -n "$service: "
+            # Extraemos el coverage de la línea TOTAL
+            COVERAGE_RAW=$(grep TOTAL $report | awk '{print $4}')
+            COVERAGE=${COVERAGE_RAW%\%}
+            if [[ $COVERAGE_RAW == "" ]]; then
+              echo "No coverage found"
+              STATUS=1
+              continue
+            fi
+            COVERAGE=${COVERAGE_RAW%\%}
+            
+            echo "$service: $COVERAGE%"
+            if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+              echo "❌ Coverage for $service is below 70% ($COVERAGE%)"
+              STATUS=1
+              FAILED_SERVICES="$FAILED_SERVICES $service"
+            else
+              echo "✅ $service: $COVERAGE%"
+            fi
+          done
+          echo "========================================="
+          
+          echo "failed=$STATUS" >> $GITHUB_OUTPUT
+          echo "failed_services=${FAILED_SERVICES:-none}" >> $GITHUB_OUTPUT
+
+      - name: Upload coverage reports as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage-reports/
+
+      - name: Fail if coverage check did not pass
+        if: steps.coverage.outputs.failed != '0'
+        run: |
+          echo "Los siguientes servicios no cumplen el 70% de cobertura mínima:"
+          for service in ${{ steps.coverage.outputs.failed_services }}; do
+            echo "  - $service"
+          done
+          exit 1

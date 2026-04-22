@@ -1,0 +1,56 @@
+name: Commit validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Validate commit messages
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            echo "Validando commits en PR (${BASE_SHA}..${HEAD_SHA})"
+            RANGE="${BASE_SHA}..${HEAD_SHA}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.event.after }}"
+            echo "Validando commits en push (${BASE_SHA}..${HEAD_SHA})"
+            RANGE="${BASE_SHA}..${HEAD_SHA}"
+          fi
+
+          # 🚨 NUEVO: Si BASE_SHA es todo ceros, es rama nueva, solo valida HEAD_SHA
+          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "Primer push de una rama nueva. Validando solo el commit actual $HEAD_SHA"
+            COMMITS="$HEAD_SHA"
+          else
+            git fetch --unshallow || true
+            git fetch --all
+            COMMITS=$(git log $RANGE --pretty=format:"%H")
+          fi
+
+          ALLOWED_REGEX="^(block|Merge|feature|feat|fix|hotfix|bugfix|breakingchange)(\\(|!|:)?.*"
+          INVALID_COMMIT_MSGS=""
+
+          for sha in $COMMITS; do
+            MSG=$(git log -1 --pretty=format:"%s" $sha)
+            if [[ ! $MSG =~ $ALLOWED_REGEX ]]; then
+              INVALID_COMMIT_MSGS="$INVALID_COMMIT_MSGS\n - $sha: $MSG"
+            fi
+          done
+
+          if [ -n "$INVALID_COMMIT_MSGS" ]; then
+            echo "❌ Los siguientes commits tienen mensajes inválidos y deben empezar con uno de feat, fix, hotfix, bugfix, breakingchange:"
+            echo -e "$INVALID_COMMIT_MSGS"
+            exit 1
+          else
+            echo "✅ Todos los commits tienen prefijo válido."
+          fi
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}

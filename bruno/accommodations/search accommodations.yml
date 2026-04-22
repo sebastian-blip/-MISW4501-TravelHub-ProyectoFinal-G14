@@ -1,0 +1,36 @@
+info:
+  name: search accommodations
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{local_core}}/accommodations/search?city={{city1}}&check_in={{check_in}}&check_out={{check_out}}&guests={{guests}}"
+  headers:
+    - name: X-Guest-Id
+      value: ""
+  params:
+    - name: city
+      value: "{{city1}}"
+      type: query
+    - name: check_in
+      value: "{{check_in}}"
+      type: query
+    - name: check_out
+      value: "{{check_out}}"
+      type: query
+    - name: guests
+      value: "{{guests}}"
+      type: query
+  auth: inherit
+
+runtime:
+  variables:
+    - name: guests
+      value: "2"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

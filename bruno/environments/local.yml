@@ -1,0 +1,32 @@
+name: local
+variables:
+  - name: token
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwidXNlcl90eXBlIjoidHJhdmVsZXIiLCJleHAiOjE3NzU4NDQ4OTJ9.GVSLwG7clW6WzjzsK9PR2Ag6uRUC9nr23fE5r9Kh2JQ
+  - name: local_core
+    value: http://0.0.0.0:8000
+  - name: core
+    value: http://k8s-travelhubdev-3d982ad1bb-1861797429.us-east-2.elb.amazonaws.com/service-core
+  - name: local_test
+    value: http://0.0.0.0:8001
+  - name: test
+    value: http://k8s-travelhubdev-3d982ad1bb-1861797429.us-east-2.elb.amazonaws.com/service-test
+  - name: city1
+    value: bogotá
+  - name: check_in
+    value: 2026-05-02
+  - name: check_out
+    value: 2026-05-06
+  - name: guess
+    value: "2"
+  - name: room_type_ids
+    value: '["c1000000-0000-0000-0000-000000000101","c1000000-0000-0000-0000-000000000102","c1000000-0000-0000-0000-000000000103"]'
+  - name: room_type_index
+    value: "0"
+  - name: reservation_id
+    value: "1"
+  - name: confirmation_code
+    value: "1"
+  - name: room_solo
+    value: c1000000-0000-0000-0000-000000000101
+  - name: room_type_id
+    value: c1000000-0000-0000-0000-000000000101

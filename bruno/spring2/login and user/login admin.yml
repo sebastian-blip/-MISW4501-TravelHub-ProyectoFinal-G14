@@ -1,0 +1,29 @@
+info:
+  name: login admin
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://0.0.0.0:8000/auth/login
+  body:
+    type: json
+    data: |-
+      {
+        "email": "admin.bogota@travelhub.com",
+        "password": "$2b$12$placeholderHashBogota"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const response = res.getBody();
+        bru.setEnvVar("token_admin", response.access_token);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

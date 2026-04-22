@@ -1,0 +1,34 @@
+info:
+  name: create flow (validate + create)
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{local_core}}/reservation-flow/create"
+  headers:
+    - name: X-Guest-Id
+      value: e6c08603-969f-488a-a858-5a626dff8c5d
+  body:
+    type: json
+    data: |-
+      {
+        "hotel_id": "b1000000-0000-0000-0000-000000000001",
+        "room_type_id": "c1000000-0000-0000-0000-000000000101",
+        "check_in": "2026-05-01",
+        "check_out": "2026-05-05",
+        "guests": 2,
+        "base_price": "500.00",
+        "taxes": "50.00",
+        "discounts": "25.00",
+        "total_price": "525.00",
+        "currency_code": "USD",
+        "special_requests": "Habitación con vista al mar"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

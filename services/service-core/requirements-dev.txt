@@ -1,0 +1,13 @@
+# Dependencies for development and testing
+-r requirements.txt
+
+# Testing
+pytest==8.3.0
+pytest-asyncio==0.23.8
+pytest-cov==5.0.0
+httpx==0.28.1
+
+# Linting and formatting
+black==24.4.2
+flake8==7.1.0
+isort==5.13.2

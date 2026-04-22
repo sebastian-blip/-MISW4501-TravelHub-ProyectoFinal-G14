@@ -1,0 +1,10 @@
+.env
+.idea/
+
+# Python
+.venv/
+.ven/
+__pycache__/
+*.py[cod]
+*.pyo
+.Python

@@ -16,10 +16,6 @@ spec:
     spec:
       serviceAccountName: service-soport-sa
 
-      volumes:
-        - name: kafka-ca
-          emptyDir: {}
-
       containers:
         - name: service-soport
           image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:21859017512575eef1d0e830da1910991ac8731d

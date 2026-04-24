@@ -1,8 +1,4 @@
-import os
 import pytest
-from fastapi.testclient import TestClient
-
-from notification_service import email_handler
 
 @pytest.fixture(autouse=True)
 def mock_env_vars(monkeypatch):
@@ -11,17 +7,20 @@ def mock_env_vars(monkeypatch):
 
 @pytest.fixture
 def client():
+    # Importar AQUI después de setear env vars
     from fastapi import FastAPI
     from routers.notification_router import router
-
     app = FastAPI()
     app.include_router(router)
+    from fastapi.testclient import TestClient
     return TestClient(app)
 
 @pytest.fixture(autouse=True)
 def mock_send_email_notification(monkeypatch):
+    # Importar adentro del fixture para que no lea viejo env
+    from notification_service import email_handler
     def fake_send_email_notification(email, message):
-        return True  # Simula éxito sin enviar nada
+        return True
     monkeypatch.setattr(email_handler, "send_email_notification", fake_send_email_notification)
 
 def test_send_email_ok(client):

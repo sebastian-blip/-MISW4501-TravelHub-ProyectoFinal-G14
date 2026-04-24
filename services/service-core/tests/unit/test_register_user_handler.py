@@ -39,9 +39,13 @@ class TestRegisterUserHandler:
     @pytest.mark.asyncio
     async def test_register_user_success(self, valid_command, mock_user):
         """Test registro exitoso de usuario."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"status": "sent"}
+
         with patch("user_service.commands.register_user_handler.async_session_maker") as mock_session_maker, \
              patch("user_service.commands.register_user_handler.UserRepository") as mock_repo_class, \
-             patch("user_service.commands.register_user_handler.hash_password", return_value="hashed_password"):
+             patch("user_service.commands.register_user_handler.hash_password", return_value="hashed_password"), \
+             patch("httpx.AsyncClient") as mock_http_client:
 
             mock_session = AsyncMock()
             mock_session_maker.return_value.__aenter__ = AsyncMock(return_value=mock_session)
@@ -51,6 +55,11 @@ class TestRegisterUserHandler:
             mock_repo.email_exists.return_value = False
             mock_repo.create.return_value = mock_user
             mock_repo_class.return_value = mock_repo
+
+            mock_http_instance = AsyncMock()
+            mock_http_instance.post = AsyncMock(return_value=mock_response)
+            mock_http_client.return_value.__aenter__ = AsyncMock(return_value=mock_http_instance)
+            mock_http_client.return_value.__aexit__ = AsyncMock(return_value=False)
 
             from user_service.commands.register_user_handler import handle_register_user
             result = await handle_register_user(valid_command)

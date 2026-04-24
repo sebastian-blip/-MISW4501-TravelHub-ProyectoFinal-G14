@@ -113,6 +113,7 @@ class ReservationRepository:
         start_date: date,
         end_date: date,
         status: Optional[str] = None,
+        hotel_id: Optional[UUID] = None,
     ) -> List[Tuple[Reservation, RoomType]]:
         filters = [
             Reservation.check_in <= end_date,
@@ -120,6 +121,8 @@ class ReservationRepository:
         ]
         if status:
             filters.append(Reservation.status == status)
+        if hotel_id is not None:
+            filters.append(Reservation.hotel_id == hotel_id)
 
         statement = (
             select(Reservation, RoomType)

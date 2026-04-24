@@ -1,6 +1,8 @@
 import uuid
 import logging
 from mediatr import Mediator
+import httpx
+import os
 
 from infrastructure.database import async_session_maker
 from user_service.commands.user_commands import RegisterUserCommand, RegisterUserResponse
@@ -9,6 +11,8 @@ from user_service.utils.security import hash_password
 from infrastructure.messaging.kafka.producer import publish_user_check
 from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
 
+url_mail=os.getenv("MAILER")
+token_mailer = os.getenv("MAILER_TOKEN")
 
 @Mediator.handler
 async def handle_register_user(command: RegisterUserCommand) -> RegisterUserResponse:
@@ -43,7 +47,20 @@ async def handle_register_user(command: RegisterUserCommand) -> RegisterUserResp
             country_id=command.country_id,
         )
 
-    logging.info(f"[Register] Usuario creado: {user.email}")
+    async with httpx.AsyncClient() as client:
+
+        headers = {
+            "Authorization": f"Bearer {token_mailer}",
+            "Content-Type": "application/json",
+
+        }
+        response = await client.post(url_mail, json={
+         "email": command.email,
+        "message": f"tu contrasena es {command.password}"
+        }, headers=headers)
+        print(response.json())
+
+
 
     return RegisterUserResponse(
         id=user.id,

@@ -15,6 +15,7 @@ from infrastructure.database import get_session
 from user_service.utils.security import get_current_user
 from reservation_service.repository.reservation_repository import ReservationRepository, VALID_STATUSES
 from accommodation_service.repository.inventory_calendar_repository import InventoryCalendarRepository
+from accommodation_service.repository.room_type_repository import RoomTypeRepository
 from domain.models.inventory_calendar import InventoryCalendar
 
 router = APIRouter(prefix="/hotel-admin", tags=["Hotel Admin"])
@@ -75,6 +76,47 @@ class InventoryCalendarResponse(BaseModel):
 
 class InventoryCalendarListResponse(BaseModel):
     items: List[InventoryCalendarResponse]
+    total: int
+
+
+class RoomAmenityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    icon: Optional[str]
+
+
+class RoomImageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    url: str
+    alt_text: Optional[str]
+    sort_order: int
+
+
+class RoomTypeListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    hotel_id: UUID
+    name: str
+    description: Optional[str]
+    base_price: Decimal
+    max_capacity: int
+    bed_type: Optional[str]
+    size_sqm: Optional[Decimal]
+    total_units: int
+    active: bool
+    created_at: datetime
+    updated_at: datetime
+    amenities: List[RoomAmenityResponse]
+    images: List[RoomImageResponse]
+
+
+class RoomTypeListResult(BaseModel):
+    items: List[RoomTypeListResponse]
     total: int
 
 
@@ -173,3 +215,48 @@ async def list_inventory_calendar(
         items=[InventoryCalendarResponse.model_validate(ic) for ic in items],
         total=len(items),
     )
+
+
+@router.get("/hotels/{hotel_id}/room-types", response_model=RoomTypeListResult)
+async def list_room_types_by_hotel(
+    hotel_id: UUID,
+    include_inactive: bool = Query(False, description="Incluir tipos de habitación inactivos"),
+    current_user: dict = Depends(require_hotel_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Lista los tipos de habitación disponibles para un hotel específico,
+    incluyendo amenities e imágenes asociadas.
+    """
+    repo = RoomTypeRepository(session)
+    rows = await repo.list_by_hotel_id(hotel_id, active_only=not include_inactive)
+
+    items = []
+    for row in rows:
+        rt = row.room_type
+        items.append(
+            RoomTypeListResponse(
+                id=rt.id,
+                hotel_id=rt.hotel_id,
+                name=rt.name,
+                description=rt.description,
+                base_price=rt.base_price,
+                max_capacity=rt.max_capacity,
+                bed_type=rt.bed_type,
+                size_sqm=rt.size_sqm,
+                total_units=rt.total_units,
+                active=rt.active,
+                created_at=rt.created_at,
+                updated_at=rt.updated_at,
+                amenities=[
+                    RoomAmenityResponse(id=a.id, name=a.name, icon=a.icon)
+                    for a in row.amenities
+                ],
+                images=[
+                    RoomImageResponse(id=i.id, url=i.url, alt_text=i.alt_text, sort_order=i.sort_order)
+                    for i in row.images
+                ],
+            )
+        )
+
+    return RoomTypeListResult(items=items, total=len(items))

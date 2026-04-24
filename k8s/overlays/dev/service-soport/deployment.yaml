@@ -18,7 +18,7 @@ spec:
 
       containers:
         - name: service-soport
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:1cb590b466e92b57a0ac68d6772903a70d884bec
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:7b0e0e956bbd118511440ef8ad2d56d2e4e3e3fe
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

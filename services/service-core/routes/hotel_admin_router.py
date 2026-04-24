@@ -10,12 +10,15 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
+from mediatr import Mediator
 
 from infrastructure.database import get_session
 from user_service.utils.security import get_current_user
 from reservation_service.repository.reservation_repository import ReservationRepository, VALID_STATUSES
 from accommodation_service.repository.inventory_calendar_repository import InventoryCalendarRepository
 from domain.models.inventory_calendar import InventoryCalendar
+from reservation_service.queries import GetReservationByIdQuery
+from user_service.queries.user_queries import GetUserByIdQuery
 
 router = APIRouter(prefix="/hotel-admin", tags=["Hotel Admin"])
 
@@ -37,6 +40,7 @@ class HotelAdminReservationResponse(BaseModel):
 
     id: UUID
     hotel_id: UUID
+    user_name: Optional[str]
     room_type_id: UUID
     cart_id: Optional[UUID]
     check_in: date
@@ -115,11 +119,23 @@ async def get_reservations(
     rows = await repo.list_by_date_range_with_room_type(start_date, end_date, status)
 
     items = []
+    mediator = Mediator()
     for reservation, room_type in rows:
+        try:
+            id_reservation = reservation.id
+            query = GetReservationByIdQuery(reservation_id=id_reservation)
+            result = await mediator.send_async(query)
+            user_id = result.user_id
+            user_data = await mediator.send(GetUserByIdQuery(user_id=user_id))
+            user_name = f'{user_data.first_name} {user_data.last_name}'
+        except Exception as e:
+            user_name = None
+
         items.append(
             HotelAdminReservationResponse(
                 id=reservation.id,
                 hotel_id=reservation.hotel_id,
+                user_name=user_name,
                 room_type_id=reservation.room_type_id,
                 cart_id=reservation.cart_id,
                 check_in=reservation.check_in,

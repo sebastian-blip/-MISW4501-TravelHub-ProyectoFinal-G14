@@ -142,7 +142,8 @@ async def get_reservations(
     """
     Lista las reservas cuyo período de estadía se solapa con el rango
     de fechas indicado, incluyendo información de la habitación.
-    Opcionalmente filtra por estado.
+    Opcionalmente filtra por estado. Filtra automáticamente por el hotel_id
+    asociado al usuario autenticado.
     """
     if start_date > end_date:
         raise HTTPException(status_code=400, detail="start_date no puede ser mayor que end_date")
@@ -153,8 +154,13 @@ async def get_reservations(
             detail=f"Estado inválido. Use: {VALID_STATUSES}",
         )
 
+    hotel_id_str = current_user.get("hotel_id")
+    if not hotel_id_str:
+        raise HTTPException(status_code=403, detail="Usuario no tiene un hotel asociado")
+    hotel_id = UUID(hotel_id_str)
+
     repo = ReservationRepository(session)
-    rows = await repo.list_by_date_range_with_room_type(start_date, end_date, status)
+    rows = await repo.list_by_date_range_with_room_type(start_date, end_date, status, hotel_id)
 
     items = []
     for reservation, room_type in rows:
@@ -204,12 +210,18 @@ async def list_inventory_calendar(
     """
     Lista las entradas del calendario de inventario disponibles
     (available_units > 0) dentro del rango de fechas indicado.
+    Filtra automáticamente por el hotel_id asociado al usuario autenticado.
     """
     if start_date > end_date:
         raise HTTPException(status_code=400, detail="start_date no puede ser mayor que end_date")
 
+    hotel_id_str = current_user.get("hotel_id")
+    if not hotel_id_str:
+        raise HTTPException(status_code=403, detail="Usuario no tiene un hotel asociado")
+    hotel_id = UUID(hotel_id_str)
+
     repo = InventoryCalendarRepository(session)
-    items = await repo.list_available_by_date_range(start_date, end_date, room_type_id)
+    items = await repo.list_available_by_date_range(start_date, end_date, room_type_id, hotel_id)
 
     return InventoryCalendarListResponse(
         items=[InventoryCalendarResponse.model_validate(ic) for ic in items],
@@ -217,17 +229,21 @@ async def list_inventory_calendar(
     )
 
 
-@router.get("/hotels/{hotel_id}/room-types", response_model=RoomTypeListResult)
+@router.get("/room-types", response_model=RoomTypeListResult)
 async def list_room_types_by_hotel(
-    hotel_id: UUID,
     include_inactive: bool = Query(False, description="Incluir tipos de habitación inactivos"),
     current_user: dict = Depends(require_hotel_admin),
     session: AsyncSession = Depends(get_session),
 ):
     """
-    Lista los tipos de habitación disponibles para un hotel específico,
-    incluyendo amenities e imágenes asociadas.
+    Lista los tipos de habitación disponibles para el hotel asociado
+    al usuario autenticado, incluyendo amenities e imágenes asociadas.
     """
+    hotel_id_str = current_user.get("hotel_id")
+    if not hotel_id_str:
+        raise HTTPException(status_code=403, detail="Usuario no tiene un hotel asociado")
+    hotel_id = UUID(hotel_id_str)
+
     repo = RoomTypeRepository(session)
     rows = await repo.list_by_hotel_id(hotel_id, active_only=not include_inactive)
 

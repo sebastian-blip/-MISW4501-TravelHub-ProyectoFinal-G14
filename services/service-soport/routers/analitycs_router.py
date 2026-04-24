@@ -34,6 +34,7 @@ async def dashboard(
         data = response.json().get('items')
         if data:
             reservations_stats = bookings_stats(data)
+            reservations_stats['reservations'] = data
         return JSONResponse(status_code=status.HTTP_200_OK, content=reservations_stats)
 
     except Exception as e:

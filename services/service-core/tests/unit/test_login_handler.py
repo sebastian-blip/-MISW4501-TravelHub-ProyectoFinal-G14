@@ -21,18 +21,12 @@ class TestLoginHandler:
 
     @pytest.fixture
     def mock_user(self):
-        """Mock de usuario existente.
-        
-        Nota: El handler actual tiene un bug donde compara password en texto plano
-        contra el hash (command.password != user.password_hash).
-        Para que el test de éxito pase, el hash debe ser IGUAL al password.
-        """
+        """Mock de usuario existente con hash bcrypt válido."""
         user = MagicMock()
         user.id = uuid.UUID("a2000000-0000-0000-0000-000000000001")
         user.email = "test@example.com"
-        # El código real hace: command.password != user.password_hash
-        # Para que NO falle la comparación, password_hash debe ser igual al password
-        user.password_hash = "SecurePass123!"
+        # Hash bcrypt válido para la contraseña "SecurePass123!"
+        user.password_hash = "$2b$12$9cDqkxa6V/D7a1Awe6sW5umR/rmLHw7trVBIQpYsxrtbYnIOAg95C"
         user.user_type = "traveler"
         user.active = True
         return user

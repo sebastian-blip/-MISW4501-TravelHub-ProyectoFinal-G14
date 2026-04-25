@@ -1,8 +1,10 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers.notification_router import router as notcation_router
+from routers.analitycs_router import router as anatics_router
 
 
 app = FastAPI(
@@ -26,13 +28,10 @@ def healthz():
 # Readiness: listo para recibir tráfico (aquí puedes validar dependencias)
 @app.get("/readyz", tags=["health"], include_in_schema=False)
 def readyz():
-    # Ejemplo simple: siempre listo.
-    # Aquí normalmente validarías DB/Redis/broker, etc. y si falla:
-    # return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"status": "not_ready"})
-    bd = os.getenv("POSTGRES_HOST")
-    return {"status": bd}
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
 
 app.include_router(notcation_router)
+app.include_router(anatics_router)
 
 
 

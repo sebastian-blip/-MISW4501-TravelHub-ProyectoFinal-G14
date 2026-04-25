@@ -1,7 +1,17 @@
-from dotenv import load_dotenv
-load_dotenv()
-
 import os
+from dotenv import load_dotenv, find_dotenv
+
+# Prefer local overrides without breaking Docker/Compose-provided env vars.
+# Order:
+# - If ENV_FILE is set, load that file.
+# - Else load .env.local (if present), then .env as fallback.
+# Never override already-defined environment variables.
+_env_file = os.getenv("ENV_FILE")
+if _env_file:
+    load_dotenv(find_dotenv(_env_file, usecwd=True), override=False)
+else:
+    load_dotenv(find_dotenv(".env.local", usecwd=True), override=False)
+    load_dotenv(find_dotenv(".env", usecwd=True), override=False)
 import logging
 from contextlib import asynccontextmanager
 from types import ModuleType
@@ -28,6 +38,7 @@ KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "true").lower() == "true"
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
 KAFKA_USERNAME = os.getenv("KAFKA_USERNAME", "")
 KAFKA_PASSWORD = os.getenv("KAFKA_PASSWORD", "")
+KAFKA_LOCAL = os.getenv("KAFKA_LOCAL", "false").lower() == "true"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,28 +66,20 @@ async def lifespan(app: FastAPI):
     if KAFKA_ENABLED:
         try:
             logging.info(f"[Kafka] Conectando a AWS: {KAFKA_BOOTSTRAP_SERVERS}")
-            if True:  # Cambiado a True ya que USE_SSL no está definido
-                await start_producer(
-                    KAFKA_BOOTSTRAP_SERVERS,
-                    use_ssl=True,
-                    username=KAFKA_USERNAME,
-                    password=KAFKA_PASSWORD
-                )
-                await start_reply_consumer(
-                    KAFKA_BOOTSTRAP_SERVERS,
-                    use_ssl=True,
-                    username=KAFKA_USERNAME,
-                    password=KAFKA_PASSWORD
-                )
-            else:
-                await start_producer(
-                    KAFKA_BOOTSTRAP_SERVERS,
-                    use_ssl=False
-                )
-                await start_reply_consumer(
-                    KAFKA_BOOTSTRAP_SERVERS,
-                    use_ssl=False
-                )
+            # NOTE: producer/reply_consumer decide SASL/PLAINTEXT using KAFKA_LOCAL + username/password env vars.
+            # Keep start_* params for backward compat, but local mode must not force SSL.
+            await start_producer(
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=not KAFKA_LOCAL,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD,
+            )
+            await start_reply_consumer(
+                KAFKA_BOOTSTRAP_SERVERS,
+                use_ssl=not KAFKA_LOCAL,
+                username=KAFKA_USERNAME,
+                password=KAFKA_PASSWORD,
+            )
         except Exception as e:
             logging.warning(f"[Kafka] No disponible: {e}")
     else:

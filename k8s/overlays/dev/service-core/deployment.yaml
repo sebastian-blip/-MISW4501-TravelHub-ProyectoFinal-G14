@@ -34,7 +34,7 @@ spec:
             - name: KAFKA_LOCAL
               value: "false"
             - name: MAILER
-              value: "http://service-soport/notification/send-email"
+              value: "http://service-soport:80/notification/send-email"
 
           envFrom:
             - secretRef:

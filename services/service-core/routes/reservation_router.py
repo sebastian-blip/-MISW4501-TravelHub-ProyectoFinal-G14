@@ -28,6 +28,7 @@ from reservation_service.queries import (
     ReservationResponse,
 )
 from infrastructure.database import get_session
+from user_service.utils.security import get_current_user
 from domain.models.reservation import Reservation
 from domain.models.reservation_guest import ReservationGuest
 from domain.models.payment import Payment
@@ -109,6 +110,25 @@ async def create_reservation(request: CreateReservationRequest):
         raise HTTPException(status_code=500, detail=f"Error al crear reservación: {str(e)}")
 
 
+@router.get("/user", response_model=ReservationListResponse)
+async def list_reservations_by_user(
+    current_user: dict = Depends(get_current_user),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    """
+    Lista todas las reservaciones del usuario autenticado (JWT).
+    """
+    try:
+        mediator = Mediator()
+        user_id = UUID(current_user["user_id"])
+        query = ListReservationsByUserQuery(user_id=user_id, limit=limit, offset=offset)
+        result = await mediator.send_async(query)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar reservaciones: {str(e)}")
+
+
 @router.get("/{reservation_id}", response_model=ReservationResponse)
 async def get_reservation_by_id(reservation_id: str):
     """
@@ -139,24 +159,6 @@ async def get_reservation_by_code(confirmation_code: str):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener reservación: {str(e)}")
-
-
-@router.get("/user/{user_id}", response_model=ReservationListResponse)
-async def list_reservations_by_user(
-    user_id: str,
-    limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-):
-    """
-    Lista todas las reservaciones de un usuario.
-    """
-    try:
-        mediator = Mediator()
-        query = ListReservationsByUserQuery(user_id=UUID(user_id), limit=limit, offset=offset)
-        result = await mediator.send_async(query)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al listar reservaciones: {str(e)}")
 
 
 @router.get("", response_model=ReservationListResponse)

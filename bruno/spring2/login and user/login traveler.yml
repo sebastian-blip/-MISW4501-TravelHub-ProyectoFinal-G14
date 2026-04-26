@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: http://0.0.0.0:8000/auth/login
+  url: "{{local_core}}/auth/login"
   body:
     type: json
     data: |-

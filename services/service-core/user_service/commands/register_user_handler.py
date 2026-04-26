@@ -12,7 +12,7 @@ from infrastructure.messaging.kafka.producer import publish_user_check
 from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
 
 url_mail=os.getenv("MAILER")
-token_mailer = os.getenv("MAILER_TOKEN")
+token_mailer = os.getenv("TOKEN_SOPORT_SERVICES")
 
 @Mediator.handler
 async def handle_register_user(command: RegisterUserCommand) -> RegisterUserResponse:

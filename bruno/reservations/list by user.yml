@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://0.0.0.0:8000/reservations/user/e6c08603-969f-488a-a858-5a626dff8c5d?limit=10&offset=0
+  url: http://0.0.0.0:8000/reservations/user/2509508e-99d7-4553-abcf-a3b5f089c393?limit=10&offset=0
   params:
     - name: limit
       value: "10"

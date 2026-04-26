@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock
 
 from routes.reservation_router import router as reservation_router
+from user_service.utils.security import get_current_user
 
 
 @pytest.fixture
@@ -191,7 +192,7 @@ class TestReservationRouter:
         assert data["confirmation_code"] == "RESABC123"
 
     def test_list_reservations_by_user_success(self, client):
-        """Test listar reservaciones por usuario exitoso."""
+        """Test listar reservaciones por usuario autenticado exitoso."""
         mock_response = {
             "items": [
                 {
@@ -222,7 +223,11 @@ class TestReservationRouter:
         }
 
         with patch("routes.reservation_router.Mediator.send_async", return_value=mock_response):
-            response = client.get("/reservations/user/a2000000-0000-0000-0000-000000000001")
+            app = FastAPI()
+            app.include_router(reservation_router)
+            app.dependency_overrides[get_current_user] = lambda: {"user_id": "a2000000-0000-0000-0000-000000000001"}
+            client_with_auth = TestClient(app)
+            response = client_with_auth.get("/reservations/user")
 
         assert response.status_code == 200
         data = response.json()

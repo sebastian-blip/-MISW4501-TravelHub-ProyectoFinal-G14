@@ -88,11 +88,9 @@ class SimpleReservationFlow:
         try:
             # user_id es opcional (puede ser reserva de invitado)
             user_id = UUID(self.context["user_id"]) if self.context.get("user_id") else None
-            user_guest_id = UUID(self.context["user_guest_id"]) if self.context.get("user_guest_id") else None
             
             command = CreateReservationCommand(
                 user_id=user_id,
-                user_guest_id=user_guest_id,
                 hotel_id=UUID(self.context["hotel_id"]),
                 room_type_id=UUID(self.context["room_type_id"]),
                 check_in=self.context["check_in"],
@@ -422,6 +420,11 @@ class SimpleReservationFlow:
                         "proceed": False,
                         "error": "Reserva no encontrada"
                     }
+
+                # Asignar user_id si viene en el contexto y la reserva no lo tiene
+                flow_user_id = self.context.get("user_id")
+                if flow_user_id and not reservation.user_id:
+                    reservation.user_id = UUID(flow_user_id)
 
                 # 1. Confirmar reserva
                 reservation.status = "confirmed"

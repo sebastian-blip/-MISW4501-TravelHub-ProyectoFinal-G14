@@ -60,7 +60,6 @@ class ReservationRepository:
 
     async def create(
         self,
-        user_id: UUID,
         hotel_id: UUID,
         room_type_id: UUID,
         check_in: date,
@@ -76,6 +75,7 @@ class ReservationRepository:
         special_requests: Optional[str] = None,
         confirmation_code: Optional[str] = None,
         user_guest_id: Optional[UUID] = None,
+        user_id: Optional[UUID] = None,
     ) -> Reservation:
         reservation = Reservation(
             user_id=user_id,

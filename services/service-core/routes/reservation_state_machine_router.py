@@ -4,6 +4,7 @@ Sin dinamismo, todo es directo y fácil de seguir.
 """
 from typing import Optional
 from datetime import date
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel, Field
@@ -78,9 +79,17 @@ async def create_reservation(
     jwt_user_id = current_user.get("user_id") if current_user else None
 
     if jwt_user_id:
-        effective_user_id = jwt_user_id
+        user_id = jwt_user_id
+        user_guest_id = None
     elif x_guest_id:
-        effective_user_id = x_guest_id
+        user_id = None
+        try:
+            user_guest_id = str(UUID(x_guest_id))
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="X-Guest-Id debe ser un UUID válido"
+            )
     else:
         raise HTTPException(
             status_code=401,
@@ -90,7 +99,8 @@ async def create_reservation(
     try:
         flow = SimpleReservationFlow()
         flow.set_data(
-            user_id=effective_user_id,
+            user_id=user_id,
+            user_guest_id=user_guest_id,
             hotel_id=request.hotel_id,
             room_type_id=request.room_type_id,
             check_in=request.check_in,
@@ -178,9 +188,17 @@ async def payment_reservation(
     jwt_user_id = current_user.get("user_id") if current_user else None
 
     if jwt_user_id:
-        effective_user_id = jwt_user_id
+        user_id = jwt_user_id
+        user_guest_id = None
     elif x_guest_id:
-        effective_user_id = x_guest_id
+        user_id = None
+        try:
+            user_guest_id = str(UUID(x_guest_id))
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="X-Guest-Id debe ser un UUID válido"
+            )
     else:
         raise HTTPException(
             status_code=401,
@@ -192,7 +210,8 @@ async def payment_reservation(
         reservation_id=request.reservation_id,
         primary_guest=request.primary_guest.model_dump(),
         payment=request.payment.model_dump(),
-        user_id=effective_user_id,
+        user_id=user_id,
+        user_guest_id=user_guest_id,
     )
     result = await flow.run_payment_flow()
     return result

@@ -31,13 +31,14 @@ class TestAuthRouter:
         }
 
         with patch("routes.auth_router.Mediator.send", new_callable=AsyncMock, return_value=mock_response):
-            response = client.post("/auth/register", json={
-                "email": "test@example.com",
-                "password": "SecurePass123!",
-                "first_name": "Juan",
-                "last_name": "Pérez",
-                "user_type": "traveler",
-            })
+            with patch("routes.auth_router._link_guest_reservations", new_callable=AsyncMock):
+                response = client.post("/auth/register", json={
+                    "email": "test@example.com",
+                    "password": "SecurePass123!",
+                    "first_name": "Juan",
+                    "last_name": "Pérez",
+                    "user_type": "traveler",
+                })
 
         assert response.status_code == 201
         data = response.json()

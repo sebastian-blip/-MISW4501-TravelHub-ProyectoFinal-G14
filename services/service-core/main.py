@@ -96,14 +96,28 @@ app = FastAPI(
     root_path="/service-core"
 )
 
-# Configuración CORS - permitir cualquier origen en desarrollo
+# Configuración CORS - permite cualquier origen
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r".*",  # Permite cualquier origen incluso con envío de credenciales
-    allow_credentials=True,    # Permite el envío de cookies/tokens de autorización
+    allow_origin_regex=r".*",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """
+    Captura cualquier excepción no manejada y devuelve JSON con cabeceras CORS.
+    Esto evita que el navegador bloquee la respuesta de error por CORS.
+    """
+    logging.exception("Unhandled exception")
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 app.include_router(health_router)
 app.include_router(auth_router)

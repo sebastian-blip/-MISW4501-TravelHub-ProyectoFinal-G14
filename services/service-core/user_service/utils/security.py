@@ -12,6 +12,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 def hash_password(plain: str) -> str:
@@ -53,3 +54,21 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         return payload
     except JWTError:
         raise credentials_exception
+
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+) -> Optional[dict]:
+    """
+    Dependencia opcional para JWT.
+    Retorna el payload si el token es válido, de lo contrario None.
+    """
+    if not credentials:
+        return None
+    try:
+        payload = decode_access_token(credentials.credentials)
+        if payload.get("user_id") is None:
+            return None
+        return payload
+    except JWTError:
+        return None

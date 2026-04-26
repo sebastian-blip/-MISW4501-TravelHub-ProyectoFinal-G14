@@ -5,13 +5,13 @@ info:
 
 http:
   method: POST
-  url: "{{local_core}}/auth/login"
+  url: "{{core}}/auth/login"
   body:
     type: json
     data: |-
       {
-        "email": "atmos@yopmail.com",
-        "password": "chepper"
+        "email": "juanpd.26@gmail.com",
+        "password": "Juanjose.pd20@"
       }
   auth: inherit
 

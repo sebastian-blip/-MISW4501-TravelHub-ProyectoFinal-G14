@@ -5,12 +5,12 @@ info:
 
 http:
   method: POST
-  url: "{{local_core}}/auth/register"
+  url: "{{core}}/auth/register"
   body:
     type: json
     data: |-
       {
-        "email": "atmos@yopmail.com",
+        "email": "atmos1@yopmail.com",
         "password": "chepper",
         "first_name": "Miguel",
         "last_name": "Moreno",

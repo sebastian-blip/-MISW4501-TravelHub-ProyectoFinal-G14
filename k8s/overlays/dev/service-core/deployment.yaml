@@ -34,7 +34,7 @@ spec:
             - name: KAFKA_LOCAL
               value: "false"
             - name: MAILER
-              value: "https://k8s-travelhubdev-3d982ad1bb-1106876598.us-east-2.elb.amazonaws.com/service-soport/notification/send-email"
+              value: "http://service-soport/notification/send-email"
 
           envFrom:
             - secretRef:

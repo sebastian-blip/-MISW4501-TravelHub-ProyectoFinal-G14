@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{local_core}}/hotel-admin/reservations/count?start_date={{start_date}}&end_date={{end_date}}"
+  url: "{{local_core}}/hotel-admin/reservations/?start_date={{start_date}}&end_date={{end_date}}"
   params:
     - name: start_date
       value: "{{start_date}}"
@@ -15,7 +15,7 @@ http:
       type: query
   auth:
     type: bearer
-    token: "{{token}}"
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZW1haWwiOiJhZG1pbi5ib2dvdGFAdHJhdmVsaHViLmNvbSIsInVzZXJfdHlwZSI6ImhvdGVsX2FkbWluIiwiaG90ZWxfaWQiOiJiMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3NzcxODQ0NjN9.j0ZeHwVFBuewxL7w6Jum4dDwUCSBvV6AdUp7tsRGQAk
 
 runtime:
   variables:

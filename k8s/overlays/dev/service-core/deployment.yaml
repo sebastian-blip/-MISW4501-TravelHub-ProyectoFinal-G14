@@ -33,6 +33,8 @@ spec:
               value: "postgres"
             - name: KAFKA_LOCAL
               value: "false"
+            - mame: MAILER
+              value: "https://k8s-travelhubdev-3d982ad1bb-1106876598.us-east-2.elb.amazonaws.com/service-soport/notification/send-email"
 
           envFrom:
             - secretRef:

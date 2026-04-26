@@ -8,7 +8,7 @@ http:
   url: "{{local_core}}/reservation-flow/create"
   headers:
     - name: X-Guest-Id
-      value: d37f25eb-d994-4c46-af25-b8559e23050e
+      value: a1f95551-0be7-4bca-9197-1b879ea0d90a
   body:
     type: json
     data: |-
@@ -27,7 +27,7 @@ http:
       }
   auth:
     type: bearer
-    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMjUwOTUwOGUtOTlkNy00NTUzLWFiY2YtYTNiNWYwODljMzkzIiwiZW1haWwiOiJjb2NveEB5b3BtYWlsLmNvbSIsInVzZXJfdHlwZSI6InRyYXZlbGVyIiwiZXhwIjoxNzc3MTY2ODQyfQ.tuk3OmMnftEhJIbUV3mrLt-90tsfwzbg5dnwjV-grsc
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMjUwOTUwOGUtOTlkNy00NTUzLWFiY2YtYTNiNWYwODljMzkzIiwiZW1haWwiOiJjb2NveEB5b3BtYWlsLmNvbSIsInVzZXJfdHlwZSI6InRyYXZlbGVyIiwiZXhwIjoxNzc3MTgzNjYxfQ.djfzR6zbPXmB0LN05ZHDRMdRwiMKWtO_vHj4V6jCoRg
 
 settings:
   encodeUrl: true

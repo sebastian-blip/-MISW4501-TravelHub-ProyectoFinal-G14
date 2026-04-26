@@ -8,14 +8,14 @@ http:
   url: "{{local_core}}/reservation-flow/create"
   headers:
     - name: X-Guest-Id
-      value: e6c08603-969f-488a-a858-5a626dff8c5d
+      value: 42d11768-69b5-488f-b2e4-11aae14c690f
   body:
     type: json
     data: |-
       {
         "hotel_id": "b1000000-0000-0000-0000-000000000001",
         "room_type_id": "c1000000-0000-0000-0000-000000000101",
-        "check_in": "2026-05-01",
+        "check_in": "2026-05-03",
         "check_out": "2026-05-05",
         "guests": 2,
         "base_price": "500.00",

@@ -63,7 +63,7 @@ class TestReservationFlowRouter:
                     "currency_code": "USD",
                     "payment_token": "tok_visa_4242",
                 },
-            }, headers={"X-Guest-Id": "guest-123"})
+            }, headers={"X-Guest-Id": "a1000000-0000-0000-0000-000000000001"})
 
         assert response.status_code == 200
         data = response.json()
@@ -88,7 +88,7 @@ class TestReservationFlowRouter:
                     "currency_code": "USD",
                     "payment_token": "tok_123",
                 },
-            }, headers={"X-Guest-Id": "guest-123"})
+            }, headers={"X-Guest-Id": "a1000000-0000-0000-0000-000000000001"})
 
         assert response.status_code == 500
         assert "DB Error" in response.json()["detail"]

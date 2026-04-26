@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://0.0.0.0:8000/reservations/user/2509508e-99d7-4553-abcf-a3b5f089c393?limit=10&offset=0
+  url: http://0.0.0.0:8000/reservations/user?limit=10&offset=0
   params:
     - name: limit
       value: "10"
@@ -13,7 +13,9 @@ http:
     - name: offset
       value: "0"
       type: query
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOTUxNmQxMjQtZmRmNS00YzlkLWIxODMtNWE0MWFjNjY1YmFmIiwiZW1haWwiOiJhdG1vc0B5b3BtYWlsLmNvbSIsInVzZXJfdHlwZSI6InRyYXZlbGVyIiwiZXhwIjoxNzc3MTg0MzY0fQ.38cM557bFsjiB-_Iwge697EfmR-HoMhrX80LOw_Cfeo
 
 settings:
   encodeUrl: true

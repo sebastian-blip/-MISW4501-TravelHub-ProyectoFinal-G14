@@ -38,4 +38,11 @@ async def handle_login(command: LoginCommand) -> LoginResponse:
 
     token = create_access_token(payload)
 
-    return LoginResponse(access_token=token, token_type="bearer", user_type=user.user_type)
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer",
+        user_type=user.user_type,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+    )

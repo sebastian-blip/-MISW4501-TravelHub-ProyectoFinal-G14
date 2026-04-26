@@ -34,3 +34,6 @@ class LoginResponse:
     access_token: str
     token_type: str
     user_type: str
+    first_name: str
+    last_name: str
+    email: str

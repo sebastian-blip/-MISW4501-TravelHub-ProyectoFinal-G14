@@ -118,8 +118,13 @@ async def create_reservation(
 
         result = await flow.run_create_flow()
 
+        if not result.get("completed"):
+            raise HTTPException(status_code=400, detail=result)
+
         return result
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -214,5 +219,9 @@ async def payment_reservation(
         user_guest_id=user_guest_id,
     )
     result = await flow.run_payment_flow()
+
+    if not result.get("completed"):
+        raise HTTPException(status_code=400, detail=result)
+
     return result
 

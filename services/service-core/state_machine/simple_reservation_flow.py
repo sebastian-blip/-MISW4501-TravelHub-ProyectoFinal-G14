@@ -448,6 +448,7 @@ class SimpleReservationFlow:
                     document_type=primary_guest.get("document_type"),
                     document_number=primary_guest.get("document_number"),
                     nationality=primary_guest.get("nationality"),
+                    email=primary_guest.get("email", ""),
                     is_primary=True
                 )
                 session.add(new_guest)

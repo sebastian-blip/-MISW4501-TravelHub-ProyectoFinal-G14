@@ -14,6 +14,7 @@ class ReservationGuest(SQLModel, table=True):
     document_type: Optional[str] = Field(default=None, max_length=50)
     document_number: Optional[str] = Field(default=None, max_length=50)
     nationality: Optional[str] = Field(default=None, max_length=3)
+    email: str = Field(default="", max_length=255)
     is_primary: bool = Field(default=False)
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 

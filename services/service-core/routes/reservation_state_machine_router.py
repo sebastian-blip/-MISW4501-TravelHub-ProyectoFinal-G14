@@ -20,7 +20,7 @@ class PrimaryGuestPaymentRequest(BaseModel):
     document_type: Optional[str] = None
     document_number: Optional[str] = None
     nationality: Optional[str] = None
-    email: Optional[str] = None
+    email: str
 
 
 class PaymentDetailRequest(BaseModel):

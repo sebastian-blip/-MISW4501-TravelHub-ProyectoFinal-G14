@@ -6,11 +6,14 @@ info:
 http:
   method: POST
   url: "{{local_core}}/reservation-flow/payment"
+  headers:
+    - name: X-Guest-Id
+      value: cbf7f11f-d995-474d-8ef3-664c2039b904
   body:
     type: json
     data: |-
       {
-        "reservation_id":"937f3773-e571-48b5-9c55-5fdbce06056a",
+        "reservation_id":"cbf7f11f-d995-474d-8ef3-664c2039b904",
         "primary_guest": {
               "first_name": "Juan",
               "last_name": "Pérez",

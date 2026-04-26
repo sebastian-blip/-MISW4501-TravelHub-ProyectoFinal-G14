@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://0.0.0.0:8000/reservations/user?limit=10&offset=0
+  url: "{{core}}/reservations/user?limit=10&offset=0"
   params:
     - name: limit
       value: "10"
@@ -15,7 +15,7 @@ http:
       type: query
   auth:
     type: bearer
-    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOTUxNmQxMjQtZmRmNS00YzlkLWIxODMtNWE0MWFjNjY1YmFmIiwiZW1haWwiOiJhdG1vc0B5b3BtYWlsLmNvbSIsInVzZXJfdHlwZSI6InRyYXZlbGVyIiwiZXhwIjoxNzc3MTg0MzY0fQ.38cM557bFsjiB-_Iwge697EfmR-HoMhrX80LOw_Cfeo
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzc2NDg3MWUtYzQzNC00ZjAwLWI1OTktNWE1ODlhOTkzNWM5IiwiZW1haWwiOiJqdWFucGQuMjZAZ21haWwuY29tIiwidXNlcl90eXBlIjoidHJhdmVsZXIiLCJleHAiOjE3NzcyMjAyNDV9.SCrPnvL67e3HrYKIZl7IncMMpuKuspyDbk2OKbHgMd0
 
 settings:
   encodeUrl: true

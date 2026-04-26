@@ -51,9 +51,11 @@ class SimpleReservationFlow:
                 "missing": [k for k in required_fields if not self.context.get(k)]
             }
 
-        correlation_id = str(uuid.uuid4())
-        result = await self.event.validate_reservation(publish_reservation_validate,correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
-        )
+        # correlation_id = str(uuid.uuid4())
+        # result = await self.event.validate_reservation(publish_reservation_validate,correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
+        # )
+
+        result = None
 
         if result is None:
             return {

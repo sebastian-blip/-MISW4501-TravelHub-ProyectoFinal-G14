@@ -6,11 +6,14 @@ info:
 http:
   method: POST
   url: "{{local_core}}/reservation-flow/payment"
+  headers:
+    - name: X-Guest-Id
+      value: a1f95551-0be7-4bca-9197-1b879ea0d90a
   body:
     type: json
     data: |-
       {
-        "reservation_id":"937f3773-e571-48b5-9c55-5fdbce06056a",
+        "reservation_id":"aca53239-fc4c-4871-a9b4-4924ebfae4ee",
         "primary_guest": {
               "first_name": "Juan",
               "last_name": "Pérez",
@@ -25,7 +28,9 @@ http:
               "payment_token": "tok_visa_4242424242424242"
           }
       }
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMjUwOTUwOGUtOTlkNy00NTUzLWFiY2YtYTNiNWYwODljMzkzIiwiZW1haWwiOiJjb2NveEB5b3BtYWlsLmNvbSIsInVzZXJfdHlwZSI6InRyYXZlbGVyIiwiZXhwIjoxNzc3MTgzNjYxfQ.djfzR6zbPXmB0LN05ZHDRMdRwiMKWtO_vHj4V6jCoRg
 
 settings:
   encodeUrl: true

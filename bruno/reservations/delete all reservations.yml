@@ -5,7 +5,7 @@ info:
 
 http:
   method: DELETE
-  url: "{{local_core}}/reservations/all"
+  url: "{{core}}/reservations/all"
   auth: inherit
 
 settings:

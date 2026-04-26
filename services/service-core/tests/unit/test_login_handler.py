@@ -29,6 +29,8 @@ class TestLoginHandler:
         user.password_hash = "$2b$12$9cDqkxa6V/D7a1Awe6sW5umR/rmLHw7trVBIQpYsxrtbYnIOAg95C"
         user.user_type = "traveler"
         user.active = True
+        user.first_name = "Juan"
+        user.last_name = "Pérez"
         return user
 
     @pytest.mark.asyncio
@@ -53,6 +55,9 @@ class TestLoginHandler:
             assert result.access_token == "mock_jwt_token"
             assert result.token_type == "bearer"
             assert result.user_type == "traveler"
+            assert result.first_name == "Juan"
+            assert result.last_name == "Pérez"
+            assert result.email == "test@example.com"
 
             mock_repo.get_by_email.assert_called_once_with("test@example.com")
 
@@ -105,7 +110,13 @@ class TestLoginHandler:
             access_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
             token_type="bearer",
             user_type="traveler",
+            first_name="Juan",
+            last_name="Pérez",
+            email="test@example.com",
         )
         assert response.access_token is not None
         assert response.token_type == "bearer"
         assert response.user_type == "traveler"
+        assert response.first_name == "Juan"
+        assert response.last_name == "Pérez"
+        assert response.email == "test@example.com"

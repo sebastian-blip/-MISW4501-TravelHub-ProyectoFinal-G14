@@ -63,12 +63,44 @@ class TestReservationFlowRouter:
                     "currency_code": "USD",
                     "payment_token": "tok_visa_4242",
                 },
-            }, headers={"X-Guest-Id": "guest-123"})
+            }, headers={"X-Guest-Id": "a1000000-0000-0000-0000-000000000001"})
 
         assert response.status_code == 200
         data = response.json()
         assert data["completed"] is True
         assert data["result"]["confirmation_code"] == "RES999999"
+
+    def test_create_flow_completed_false_returns_400(self, client):
+        """Test flujo de creación con completed=False retorna 400."""
+        mock_result = {
+            "completed": False,
+            "step": "create",
+            "result": {
+                "success": False,
+                "proceed": False,
+                "error": "No hay disponibilidad para la fecha 2026-05-03",
+                "message": "Error al crear: No hay disponibilidad para la fecha 2026-05-03"
+            }
+        }
+
+        with patch("routes.reservation_state_machine_router.SimpleReservationFlow.run_create_flow", return_value=mock_result):
+            response = client.post("/reservation-flow/create", json={
+                "hotel_id": "b1000000-0000-0000-0000-000000000001",
+                "room_type_id": "c1000000-0000-0000-0000-000000000101",
+                "check_in": "2026-05-01",
+                "check_out": "2026-05-05",
+                "guests": 2,
+                "base_price": "500.00",
+                "taxes": "50.00",
+                "discounts": "25.00",
+                "total_price": "525.00",
+                "currency_code": "USD",
+            }, headers={"X-Guest-Id": "a1000000-0000-0000-0000-000000000001"})
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["completed"] is False
+        assert "No hay disponibilidad" in data["detail"]["result"]["message"]
 
     def test_create_flow_validation_error(self, client):
         """Test flujo de creación con error interno retorna 500."""
@@ -88,7 +120,7 @@ class TestReservationFlowRouter:
                     "currency_code": "USD",
                     "payment_token": "tok_123",
                 },
-            }, headers={"X-Guest-Id": "guest-123"})
+            }, headers={"X-Guest-Id": "a1000000-0000-0000-0000-000000000001"})
 
         assert response.status_code == 500
         assert "DB Error" in response.json()["detail"]
@@ -144,6 +176,39 @@ class TestReservationFlowRouter:
         data = response.json()
         assert data["exists"] is False
         assert "no encontrada" in data["message"]
+
+    def test_payment_flow_completed_false_returns_400(self, client):
+        """Test flujo de pago con completed=False retorna 400."""
+        mock_result = {
+            "completed": False,
+            "step": "validate_time",
+            "result": {
+                "success": False,
+                "proceed": False,
+                "error": "La reserva ya está confirmada",
+                "confirmation_code": "RES123"
+            }
+        }
+
+        with patch("routes.reservation_state_machine_router.SimpleReservationFlow.run_payment_flow", return_value=mock_result):
+            response = client.post("/reservation-flow/payment", json={
+                "reservation_id": "d1000000-0000-0000-0000-000000000001",
+                "primary_guest": {
+                    "first_name": "Juan",
+                    "last_name": "Pérez",
+                    "email": "juan@example.com"
+                },
+                "payment": {
+                    "amount": "525.00",
+                    "currency_code": "USD",
+                    "payment_token": "tok_visa_4242"
+                }
+            }, headers={"X-Guest-Id": "a1000000-0000-0000-0000-000000000001"})
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["completed"] is False
+        assert "ya está confirmada" in data["detail"]["result"]["error"]
 
     def test_create_flow_invalid_payload(self, client):
         """Test flujo de creación con payload inválido retorna 422."""

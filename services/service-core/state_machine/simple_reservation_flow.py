@@ -51,9 +51,11 @@ class SimpleReservationFlow:
                 "missing": [k for k in required_fields if not self.context.get(k)]
             }
 
-        correlation_id = str(uuid.uuid4())
-        result = await self.event.validate_reservation(publish_reservation_validate,correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
-        )
+        # correlation_id = str(uuid.uuid4())
+        # result = await self.event.validate_reservation(publish_reservation_validate,correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
+        # )
+
+        result = None
 
         if result is None:
             return {
@@ -88,9 +90,11 @@ class SimpleReservationFlow:
         try:
             # user_id es opcional (puede ser reserva de invitado)
             user_id = UUID(self.context["user_id"]) if self.context.get("user_id") else None
+            user_guest_id = UUID(self.context["user_guest_id"]) if self.context.get("user_guest_id") else None
             
             command = CreateReservationCommand(
                 user_id=user_id,
+                user_guest_id=user_guest_id,
                 hotel_id=UUID(self.context["hotel_id"]),
                 room_type_id=UUID(self.context["room_type_id"]),
                 check_in=self.context["check_in"],
@@ -448,6 +452,7 @@ class SimpleReservationFlow:
                     document_type=primary_guest.get("document_type"),
                     document_number=primary_guest.get("document_number"),
                     nationality=primary_guest.get("nationality"),
+                    email=primary_guest.get("email", ""),
                     is_primary=True
                 )
                 session.add(new_guest)

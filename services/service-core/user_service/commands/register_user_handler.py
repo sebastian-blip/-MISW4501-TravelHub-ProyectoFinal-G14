@@ -47,20 +47,23 @@ async def handle_register_user(command: RegisterUserCommand) -> RegisterUserResp
             country_id=command.country_id,
         )
 
-    async with httpx.AsyncClient() as client:
-
-        headers = {
-            "Authorization": f"Bearer {token_mailer}",
-            "Content-Type": "application/json",
-
-        }
-        response = await client.post(url_mail, json={
-         "email": command.email,
-        "message": f"tu contrasena es {command.password}"
-        }, headers=headers)
-        print(response.json())
-
-
+    # Enviar email de bienvenida (no bloqueante para el registro)
+    try:
+        if url_mail and token_mailer:
+            async with httpx.AsyncClient() as client:
+                headers = {
+                    "Authorization": f"Bearer {token_mailer}",
+                    "Content-Type": "application/json",
+                }
+                response = await client.post(url_mail, json={
+                    "email": command.email,
+                    "message": f"tu contrasena es {command.password}"
+                }, headers=headers)
+                logging.info(f"[Mailer] Response: {response.status_code}")
+        else:
+            logging.warning("[Mailer] MAILER o TOKEN_SOPORT_SERVICES no configurados, email no enviado")
+    except Exception as e:
+        logging.error(f"[Mailer] Error enviando email: {e}")
 
     return RegisterUserResponse(
         id=user.id,

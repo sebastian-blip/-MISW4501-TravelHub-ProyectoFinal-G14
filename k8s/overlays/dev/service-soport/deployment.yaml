@@ -16,14 +16,9 @@ spec:
     spec:
       serviceAccountName: service-soport-sa
 
-      volumes:
-        - name: kafka-ca
-          emptyDir: {}
-
-
       containers:
         - name: service-soport
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:v2
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-soport:e1f8d79c9e611712c38960444531e7c7e0b72df4
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -31,21 +26,7 @@ spec:
 
           envFrom:
             - secretRef:
-                name: travelhub-postgres
-
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: http
-            initialDelaySeconds: 5
-            periodSeconds: 10
-
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: http
-            initialDelaySeconds: 15
-            periodSeconds: 20
+                name: travelhub-env
 
           resources:
             requests:

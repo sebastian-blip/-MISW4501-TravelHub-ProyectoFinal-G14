@@ -23,7 +23,7 @@ spec:
 
       containers:
         - name: service-external
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-external:latest
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-test:e1f8d79c9e611712c38960444531e7c7e0b72df4
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -31,6 +31,8 @@ spec:
           env:
             - name: POSTGRES_DB
               value: "postgres"
+            - name: KAFKA_LOCAL
+              value: "false"
 
           envFrom:
             - secretRef:

@@ -28,17 +28,17 @@ module "eks" {
 
   enable_cluster_creator_admin_permissions = true
 
- eks_managed_node_groups = {
-  default = {
-    desired_size   = var.node_desired_size
-    max_size       = var.node_max_size
-    min_size       = var.node_min_size
-    instance_types = [var.node_instance_type]
-    disk_size      = 20
+  eks_managed_node_groups = {
+    default = {
+      desired_size   = var.node_desired_size
+      max_size       = var.node_max_size
+      min_size       = var.node_min_size
+      instance_types = [var.node_instance_type]
+      disk_size      = 20
 
-    ami_type = "AL2023_x86_64_STANDARD"
+      ami_type = "AL2023_x86_64_STANDARD"
+    }
   }
-}
 
   enable_irsa = true
 }
@@ -62,7 +62,7 @@ provider "helm" {
     exec = {
       api_version = "client.authentication.k8s.io/v1"
       command     = "aws"
-      args        = [
+      args = [
         "eks", "get-token",
         "--cluster-name", module.eks.cluster_name,
         "--region", var.region,

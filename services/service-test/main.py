@@ -4,9 +4,10 @@ load_dotenv()
 import os
 import logging
 from contextlib import asynccontextmanager
+from fastapi.responses import JSONResponse
 from types import ModuleType
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 
 from app.infrastructure.database import init_db
 from app.kafka.producer import start_producer, stop_producer
@@ -89,7 +90,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="TravelHub Service Test - Kafka",
-    version="1.0.0",
+    version="0.2.1",
     lifespan=lifespan,
     root_path="/service-test"
 )
@@ -97,6 +98,20 @@ app = FastAPI(
 app.include_router(check_router)
 app.include_router(test_results_router)
 
+
+@app.get("/healthz", tags=["health"], include_in_schema=False)
+def healthz():
+    return {"status": "ok"}
+
+# Readiness: listo para recibir tráfico (aquí puedes validar dependencias)
+@app.get("/readyz", tags=["health"], include_in_schema=False)
+def readyz():
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
+
+
+@app.get('/version', tags=["version"], include_in_schema=False)
+def version():
+    return {"version": app.version}
 
 @app.get("/health")
 async def health():

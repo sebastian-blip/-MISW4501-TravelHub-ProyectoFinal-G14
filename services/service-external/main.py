@@ -8,7 +8,8 @@ from contextlib import asynccontextmanager
 from types import ModuleType
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse
 
 load_dotenv()
 
@@ -55,7 +56,7 @@ async def lifespan(app: FastAPI):
             logging.warning("[service-external] Kafka stop: %s", e)
 
 
-app = FastAPI(title="TravelHub Service External", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="TravelHub Service External", version="0.2.1", lifespan=lifespan)
 mount_routes(app)
 
 
@@ -74,3 +75,18 @@ def ready():
     if os.getenv("TH_PAYMENT_SKIP_READY", "").lower() in ("1", "true", "yes"):
         return {"ready": True, "skipped": True}
     return {"ready": True}
+
+
+@app.get("/healthz", tags=["health"], include_in_schema=False)
+def healthz():
+    return {"status": "ok"}
+
+# Readiness: listo para recibir tráfico (aquí puedes validar dependencias)
+@app.get("/readyz", tags=["health"], include_in_schema=False)
+def readyz():
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
+
+
+@app.get('/version', tags=["version"], include_in_schema=False)
+def version():
+    return {"version": app.version}

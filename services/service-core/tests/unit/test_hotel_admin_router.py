@@ -24,6 +24,7 @@ def client_hotel_admin():
             "user_id": "a2000000-0000-0000-0000-000000000001",
             "email": "admin@hotel.com",
             "user_type": "hotel_admin",
+            "hotel_id": "b1000000-0000-0000-0000-000000000001",
         }
 
     app.dependency_overrides[get_current_user] = mock_current_user
@@ -147,7 +148,7 @@ class TestHotelAdminReservationsList:
         data = response.json()
         assert data["total"] == 1
         mock_instance.list_by_date_range_with_room_type.assert_awaited_once_with(
-            date(2026, 1, 1), date(2026, 1, 31), "pending"
+            date(2026, 1, 1), date(2026, 1, 31), "pending", uuid.UUID("b1000000-0000-0000-0000-000000000001")
         )
 
     def test_list_invalid_status(self, client_hotel_admin):
@@ -180,6 +181,75 @@ class TestHotelAdminReservationsList:
             params={"start_date": "2026-01-01", "end_date": "2026-01-31"},
         )
         assert response.status_code == 403
+
+
+class TestHotelAdminRoomTypesList:
+    """Tests para GET /hotel-admin/room-types"""
+
+    def test_list_room_types_success(self, client_hotel_admin):
+        room_type = mock_room_type()
+        amenity = MagicMockObject(
+            id=uuid.UUID("f1000000-0000-0000-0000-000000000001"),
+            room_type_id=room_type.id,
+            name="Wi-Fi",
+            icon="wifi",
+        )
+        image = MagicMockObject(
+            id=uuid.UUID("f2000000-0000-0000-0000-000000000001"),
+            room_type_id=room_type.id,
+            url="https://example.com/image.jpg",
+            alt_text="Room image",
+            sort_order=1,
+        )
+
+        with patch(
+            "routes.hotel_admin_router.RoomTypeRepository"
+        ) as MockRepo:
+            mock_instance = MockRepo.return_value
+            mock_instance.list_by_hotel_id = AsyncMock(return_value=[
+                MagicMockObject(room_type=room_type, amenities=[amenity], images=[image])
+            ])
+
+            response = client_hotel_admin.get(
+                "/hotel-admin/room-types",
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == "Deluxe"
+        assert data["items"][0]["amenities"][0]["name"] == "Wi-Fi"
+        assert data["items"][0]["images"][0]["url"] == "https://example.com/image.jpg"
+
+    def test_list_room_types_include_inactive(self, client_hotel_admin):
+        room_type = mock_room_type(active=False)
+
+        with patch(
+            "routes.hotel_admin_router.RoomTypeRepository"
+        ) as MockRepo:
+            mock_instance = MockRepo.return_value
+            mock_instance.list_by_hotel_id = AsyncMock(return_value=[
+                MagicMockObject(room_type=room_type, amenities=[], images=[])
+            ])
+
+            response = client_hotel_admin.get(
+                "/hotel-admin/room-types?include_inactive=true",
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        mock_instance.list_by_hotel_id.assert_awaited_once_with(
+            uuid.UUID("b1000000-0000-0000-0000-000000000001"), active_only=False
+        )
+
+    def test_list_room_types_forbidden_for_traveler(self, client_traveler):
+        response = client_traveler.get(
+            "/hotel-admin/room-types",
+        )
+        assert response.status_code == 403
+        assert "Acceso denegado" in response.json()["detail"]
 
 
 class TestHotelAdminInventoryCalendar:
@@ -257,7 +327,7 @@ class TestHotelAdminInventoryCalendar:
         data = response.json()
         assert data["total"] == 1
         MockRepo.return_value.list_available_by_date_range.assert_awaited_once_with(
-            date(2026, 5, 1), date(2026, 5, 1), target_room
+            date(2026, 5, 1), date(2026, 5, 1), target_room, uuid.UUID("b1000000-0000-0000-0000-000000000001")
         )
 
     def test_list_inventory_invalid_date_range(self, client_hotel_admin):

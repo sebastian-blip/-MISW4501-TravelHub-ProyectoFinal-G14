@@ -51,9 +51,12 @@ class TestAccommodationRouter:
         result.check_out_time = "11:00:00"
         result.available_room_types = [room_type]
 
-        mock_results = [result]
+        mock_page = MagicMock()
+        mock_page.page = 2
+        mock_page.page_size = 10
+        mock_page.items = [result]
 
-        with patch("routes.accommodation_router.Mediator.send", new_callable=AsyncMock, return_value=mock_results):
+        with patch("routes.accommodation_router.Mediator.send", new_callable=AsyncMock, return_value=mock_page):
             response = client.get("/accommodations/search?city=Bogotá&check_in=2026-05-01&check_out=2026-05-05&guests=2", headers={"X-Guest-Id": "guest-123"})
 
         assert response.status_code == 200
@@ -102,9 +105,9 @@ class TestAccommodationRouter:
         hotel2.total_reviews = 200
         hotel2.active = True
 
-        mock_results = [hotel1, hotel2]
+        result = [hotel1, hotel2]
 
-        with patch("routes.accommodation_router.Mediator.send", new_callable=AsyncMock, return_value=mock_results):
+        with patch("routes.accommodation_router.Mediator.send", new_callable=AsyncMock, return_value=result):
             response = client.get("/accommodations/hotels")
 
         assert response.status_code == 200

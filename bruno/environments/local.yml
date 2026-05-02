@@ -5,7 +5,7 @@ variables:
   - name: local_core
     value: http://0.0.0.0:8000
   - name: core
-    value: http://k8s-travelhubdev-3d982ad1bb-1861797429.us-east-2.elb.amazonaws.com/service-core
+    value: http://k8s-travelhubdev-3d982ad1bb-1106876598.us-east-2.elb.amazonaws.com/service-core
   - name: local_test
     value: http://0.0.0.0:8001
   - name: test

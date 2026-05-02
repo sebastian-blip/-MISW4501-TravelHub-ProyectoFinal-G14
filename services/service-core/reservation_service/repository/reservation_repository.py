@@ -60,7 +60,6 @@ class ReservationRepository:
 
     async def create(
         self,
-        user_id: UUID,
         hotel_id: UUID,
         room_type_id: UUID,
         check_in: date,
@@ -76,6 +75,7 @@ class ReservationRepository:
         special_requests: Optional[str] = None,
         confirmation_code: Optional[str] = None,
         user_guest_id: Optional[UUID] = None,
+        user_id: Optional[UUID] = None,
     ) -> Reservation:
         reservation = Reservation(
             user_id=user_id,
@@ -113,6 +113,7 @@ class ReservationRepository:
         start_date: date,
         end_date: date,
         status: Optional[str] = None,
+        hotel_id: Optional[UUID] = None,
     ) -> List[Tuple[Reservation, RoomType]]:
         filters = [
             Reservation.check_in <= end_date,
@@ -120,6 +121,8 @@ class ReservationRepository:
         ]
         if status:
             filters.append(Reservation.status == status)
+        if hotel_id is not None:
+            filters.append(Reservation.hotel_id == hotel_id)
 
         statement = (
             select(Reservation, RoomType)

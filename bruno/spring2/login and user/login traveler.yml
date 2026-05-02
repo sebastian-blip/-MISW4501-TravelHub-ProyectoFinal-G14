@@ -5,13 +5,13 @@ info:
 
 http:
   method: POST
-  url: http://0.0.0.0:8000/auth/login
+  url: "{{local_core}}/auth/login"
   body:
     type: json
     data: |-
       {
-        "email": "admin.bogota@travelhub.com",
-        "password": "$2b$12$placeholderHashBogota"
+        "email": "juanpd.26@gmail.com",
+        "password": "Juanjose.pd20@"
       }
   auth: inherit
 

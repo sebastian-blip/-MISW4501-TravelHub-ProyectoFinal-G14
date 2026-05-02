@@ -11,6 +11,12 @@ class SearchAccommodationsQuery:
     check_in: date
     check_out: date
     guests: int = 1
+    amenities: Optional[List[str]] = None
+    price_min: Optional[Decimal] = None
+    price_max: Optional[Decimal] = None
+    min_stars: Optional[int] = None
+    page: int = 1
+    page_size: int = 20
 
 
 @dataclass
@@ -75,6 +81,14 @@ class AccommodationSearchResult:
     check_in_time: str
     check_out_time: str
     available_room_types: List[RoomTypeAvailability] = field(default_factory=list)
+
+
+@dataclass
+class ListHotelsResult:
+    total: int
+    items: List[AccommodationSearchResult] = field(default_factory=list)
+    page: int = 1
+    page_size: int = 20
 
 
 @dataclass

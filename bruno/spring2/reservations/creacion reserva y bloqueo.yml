@@ -8,7 +8,7 @@ http:
   url: "{{local_core}}/reservation-flow/create"
   headers:
     - name: X-Guest-Id
-      value: e6c08603-969f-488a-a858-5a626dff8c5d
+      value: a1f95551-0be7-4bca-9197-1b879ea0d90a
   body:
     type: json
     data: |-
@@ -25,7 +25,9 @@ http:
         "currency_code": "USD",
         "special_requests": "Habitación con vista al mar"
       }
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMjUwOTUwOGUtOTlkNy00NTUzLWFiY2YtYTNiNWYwODljMzkzIiwiZW1haWwiOiJjb2NveEB5b3BtYWlsLmNvbSIsInVzZXJfdHlwZSI6InRyYXZlbGVyIiwiZXhwIjoxNzc3MTgzNjYxfQ.djfzR6zbPXmB0LN05ZHDRMdRwiMKWtO_vHj4V6jCoRg
 
 settings:
   encodeUrl: true

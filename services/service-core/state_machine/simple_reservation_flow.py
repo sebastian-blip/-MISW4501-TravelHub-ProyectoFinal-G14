@@ -51,9 +51,11 @@ class SimpleReservationFlow:
                 "missing": [k for k in required_fields if not self.context.get(k)]
             }
 
-        correlation_id = str(uuid.uuid4())
-        result = await self.event.validate_reservation(publish_reservation_validate,correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
-        )
+        # correlation_id = str(uuid.uuid4())
+        # result = await self.event.validate_reservation(publish_reservation_validate,correlation_id, user_id, hotel_id, room_type_id, check_in, check_out
+        # )
+
+        result = None
 
         if result is None:
             return {
@@ -423,6 +425,11 @@ class SimpleReservationFlow:
                         "error": "Reserva no encontrada"
                     }
 
+                # Asignar user_id si viene en el contexto y la reserva no lo tiene
+                flow_user_id = self.context.get("user_id")
+                if flow_user_id and not reservation.user_id:
+                    reservation.user_id = UUID(flow_user_id)
+
                 # 1. Confirmar reserva
                 reservation.status = "confirmed"
 
@@ -445,6 +452,7 @@ class SimpleReservationFlow:
                     document_type=primary_guest.get("document_type"),
                     document_number=primary_guest.get("document_number"),
                     nationality=primary_guest.get("nationality"),
+                    email=primary_guest.get("email", ""),
                     is_primary=True
                 )
                 session.add(new_guest)

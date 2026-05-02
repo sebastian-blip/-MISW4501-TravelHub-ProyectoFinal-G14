@@ -9,7 +9,7 @@ class Reservation(SQLModel, table=True):
     __tablename__ = "reservations"
     
     id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(index=True)
+    user_id: Optional[UUID] = Field(default=None, index=True)
     hotel_id: UUID = Field(index=True)
     room_type_id: UUID = Field(index=True)
     cart_id: Optional[UUID] = Field(default=None, index=True)

@@ -1,17 +1,27 @@
-from dotenv import load_dotenv
-load_dotenv()
 import os
-
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from routers.notification_router import router as notcation_router
+from routers.analitycs_router import router as anatics_router
+
+
+
 
 app = FastAPI(
     title="TravelHub API",
-    version="0.1.0",
+    version="0.1.1",
     root_path="/service-soport"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/healthz", tags=["health"], include_in_schema=False)
 def healthz():
@@ -20,13 +30,17 @@ def healthz():
 # Readiness: listo para recibir tráfico (aquí puedes validar dependencias)
 @app.get("/readyz", tags=["health"], include_in_schema=False)
 def readyz():
-    # Ejemplo simple: siempre listo.
-    # Aquí normalmente validarías DB/Redis/broker, etc. y si falla:
-    # return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"status": "not_ready"})
-    bd = os.getenv("POSTGRES_HOST")
-    return {"status": bd}
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
+
+
+@app.get('/version', tags=["version"], include_in_schema=False)
+def version():
+    return {"version": app.version}
+
 
 app.include_router(notcation_router)
+app.include_router(anatics_router)
+
 
 
 if __name__ == "__main__":

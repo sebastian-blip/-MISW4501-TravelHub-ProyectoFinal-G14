@@ -4,11 +4,13 @@ Sin dinamismo, todo es directo y fácil de seguir.
 """
 from typing import Optional
 from datetime import date
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException,Header
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel, Field
 
 from state_machine.simple_reservation_flow import SimpleReservationFlow
+from user_service.utils.security import get_current_user_optional
 
 router = APIRouter(prefix="/reservation-flow", tags=["Reservation Flow"])
 
@@ -19,7 +21,7 @@ class PrimaryGuestPaymentRequest(BaseModel):
     document_type: Optional[str] = None
     document_number: Optional[str] = None
     nationality: Optional[str] = None
-    email: Optional[str] = None
+    email: str
 
 
 class PaymentDetailRequest(BaseModel):
@@ -57,20 +59,48 @@ class CancelRequest(BaseModel):
 
 
 @router.post("/create")
-async def create_reservation(request: CreateRequest, x_guest_id: str = Header(..., alias="X-Guest-Id")):
+async def create_reservation(
+    request: CreateRequest,
+    x_guest_id: Optional[str] = Header(None, alias="X-Guest-Id"),
+    current_user: Optional[dict] = Depends(get_current_user_optional),
+):
     """
     Flujo: validate → create.
-    
+
     1. Valida si existe reserva duplicada (solapamiento de fechas)
     2. Si no existe, la crea con guest principal y pago
     3. Retorna confirmation_code o error
-    """
 
+    Autenticación opcional:
+    - Si viene JWT válido, extrae user_id del token (prioridad).
+    - Si no viene JWT, usa X-Guest-Id.
+    - Si no viene ninguno, retorna 401.
+    """
+    jwt_user_id = current_user.get("user_id") if current_user else None
+
+    if jwt_user_id:
+        user_id = jwt_user_id
+        user_guest_id = None
+    elif x_guest_id:
+        user_id = None
+        try:
+            user_guest_id = str(UUID(x_guest_id))
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="X-Guest-Id debe ser un UUID válido"
+            )
+    else:
+        raise HTTPException(
+            status_code=401,
+            detail="Se requiere autenticación (Bearer token) o X-Guest-Id"
+        )
 
     try:
         flow = SimpleReservationFlow()
         flow.set_data(
-            user_id=request.user_id,
+            user_id=user_id,
+            user_guest_id=user_guest_id,
             hotel_id=request.hotel_id,
             room_type_id=request.room_type_id,
             check_in=request.check_in,
@@ -84,13 +114,17 @@ async def create_reservation(request: CreateRequest, x_guest_id: str = Header(..
             cart_id=request.cart_id,
             cancellation_policy=request.cancellation_policy,
             special_requests=request.special_requests,
-            user_guest_id=x_guest_id,
         )
-        
+
         result = await flow.run_create_flow()
-        
+
+        if not result.get("completed"):
+            raise HTTPException(status_code=400, detail=result)
+
         return result
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -143,13 +177,51 @@ async def data_reservation(reservation_id:str):
 
 
 @router.post("/payment")
-async def payment_reservation(request: ConfirmReservationRequest):
+async def payment_reservation(
+    request: ConfirmReservationRequest,
+    x_guest_id: Optional[str] = Header(None, alias="X-Guest-Id"),
+    current_user: Optional[dict] = Depends(get_current_user_optional),
+):
+    """
+    Flujo de pago: validate_time → confirm_payment.
+
+    Autenticación opcional:
+    - Si viene JWT válido, extrae user_id del token (prioridad).
+    - Si no viene JWT, usa X-Guest-Id.
+    - Si no viene ninguno, retorna 401.
+    """
+    jwt_user_id = current_user.get("user_id") if current_user else None
+
+    if jwt_user_id:
+        user_id = jwt_user_id
+        user_guest_id = None
+    elif x_guest_id:
+        user_id = None
+        try:
+            user_guest_id = str(UUID(x_guest_id))
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="X-Guest-Id debe ser un UUID válido"
+            )
+    else:
+        raise HTTPException(
+            status_code=401,
+            detail="Se requiere autenticación (Bearer token) o X-Guest-Id"
+        )
+
     flow = SimpleReservationFlow()
     flow.set_data(
         reservation_id=request.reservation_id,
-        primary_guest=request.primary_guest.dict(),
-        payment=request.payment.dict(),
+        primary_guest=request.primary_guest.model_dump(),
+        payment=request.payment.model_dump(),
+        user_id=user_id,
+        user_guest_id=user_guest_id,
     )
     result = await flow.run_payment_flow()
+
+    if not result.get("completed"):
+        raise HTTPException(status_code=400, detail=result)
+
     return result
 

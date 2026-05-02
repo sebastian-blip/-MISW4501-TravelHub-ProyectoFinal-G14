@@ -5,17 +5,17 @@ info:
 
 http:
   method: POST
-  url: http://0.0.0.0:8000/auth/register
+  url: "{{core}}/auth/register"
   body:
     type: json
     data: |-
       {
-        "email": "pepe1@gmail.com",
+        "email": "atmos11@yopmail.com",
         "password": "chepper",
         "first_name": "Miguel",
         "last_name": "Moreno",
         "user_type": "traveler",
-        "phone": "+573001234567",
+        "phone": null,
         "country_id": null
       }
   auth: inherit

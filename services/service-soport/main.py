@@ -7,9 +7,11 @@ from routers.notification_router import router as notcation_router
 from routers.analitycs_router import router as anatics_router
 
 
+
+
 app = FastAPI(
     title="TravelHub API",
-    version="0.1.0",
+    version="0.1.1",
     root_path="/service-soport"
 )
 
@@ -29,6 +31,12 @@ def healthz():
 @app.get("/readyz", tags=["health"], include_in_schema=False)
 def readyz():
     return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
+
+
+@app.get('/version', tags=["version"], include_in_schema=False)
+def version():
+    return {"version": app.version}
+
 
 app.include_router(notcation_router)
 app.include_router(anatics_router)

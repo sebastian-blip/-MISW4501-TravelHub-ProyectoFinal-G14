@@ -6,8 +6,10 @@ import logging
 from contextlib import asynccontextmanager
 from types import ModuleType
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 
 from infrastructure.database import init_db
 from infrastructure.messaging.kafka.producer import start_producer, stop_producer
@@ -148,6 +150,20 @@ async def enviar_prueba(request: PruebaRequest):
     cid = await publish_prueba(mensaje=request.mensaje)
     reply = await wait_for_reply(cid, timeout=5.0)
     return reply
+
+@app.get("/healthz", tags=["health"], include_in_schema=False)
+def healthz():
+    return {"status": "ok"}
+
+# Readiness: listo para recibir tráfico (aquí puedes validar dependencias)
+@app.get("/readyz", tags=["health"], include_in_schema=False)
+def readyz():
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
+
+
+@app.get('/version', tags=["version"], include_in_schema=False)
+def version():
+    return {"version": app.version}
 
 if __name__ == "__main__":
     import uvicorn

@@ -15,4 +15,3 @@ RUN if [ -d /service ]; then cp /service/*.pem /app/certs/ 2>/dev/null || true; 
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

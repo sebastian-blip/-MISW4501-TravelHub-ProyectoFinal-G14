@@ -1,0 +1,29 @@
+info:
+  name: update inventory
+  type: http
+  seq: 4
+
+http:
+  method: PATCH
+  url: "{{local_core}}/service-core/hotel-admin/inventory/{{inventory_id}}"
+  body:
+    type: json
+    data: |-
+      {
+        "available_units": 5,
+        "price_per_night": "250.00"
+      }
+  auth:
+    type: bearer
+    token: "{{token_admin}}"
+
+runtime:
+  variables:
+    - name: inventory_id
+      value: e1000000-0000-0000-0000-000000000001
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

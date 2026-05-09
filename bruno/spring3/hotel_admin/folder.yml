@@ -1,0 +1,7 @@
+info:
+  name: hotel_admin
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit

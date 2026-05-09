@@ -16,8 +16,11 @@ class InventoryCalendar(SQLModel, table=True):
     currency_code: str = Field(default="USD", max_length=3)
     minimum_stay: int = Field(default=1)
     last_synced_at: Optional[datetime.datetime] = None
-    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
-    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    def _utc_now_naive() -> datetime.datetime:
+        return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+    created_at: datetime.datetime = Field(default_factory=_utc_now_naive)
+    updated_at: datetime.datetime = Field(default_factory=_utc_now_naive)
 
     def __str__(self):
         return f"{self.room_type_id} - {self.date}"

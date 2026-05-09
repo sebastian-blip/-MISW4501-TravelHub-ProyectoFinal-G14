@@ -360,3 +360,369 @@ class MagicMockInventoryCalendar:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+
+# ---------------------------------------------------------------------------
+# Tests para nuevos endpoints de tarifas / inventario (autorización owner_user_id)
+# ---------------------------------------------------------------------------
+
+class TestHotelAdminRoomsSimple:
+    """Tests para GET /hotel-admin/rooms/simple"""
+
+    def test_list_rooms_simple_success(self, client_hotel_admin):
+        mock_rooms = [
+            mock_room_type(id=uuid.UUID("c1000000-0000-0000-0000-000000000101"), name="Deluxe"),
+            mock_room_type(id=uuid.UUID("c1000000-0000-0000-0000-000000000102"), name="Standard"),
+        ]
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRepo:
+                mock_instance = MockRepo.return_value
+                mock_instance.list_simple_by_hotel_id = AsyncMock(return_value=mock_rooms)
+
+                response = client_hotel_admin.get("/hotel-admin/rooms/simple")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 2
+        assert data["items"][0]["name"] == "Deluxe"
+        assert data["items"][0]["description"] == "Habitación deluxe con vista al mar"
+        assert "id" in data["items"][0]
+
+    def test_list_rooms_simple_forbidden_traveler(self, client_traveler):
+        response = client_traveler.get("/hotel-admin/rooms/simple")
+        assert response.status_code == 403
+        assert "Acceso denegado" in response.json()["detail"]
+
+    def test_list_rooms_simple_unauthorized(self, client_no_auth):
+        response = client_no_auth.get("/hotel-admin/rooms/simple")
+        assert response.status_code == 403
+
+
+class TestHotelAdminRoomDetail:
+    """Tests para GET /hotel-admin/rooms/{room_id}"""
+
+    def test_get_room_detail_success(self, client_hotel_admin):
+        room_type = mock_room_type()
+        amenity = MagicMockObject(
+            id=uuid.UUID("f1000000-0000-0000-0000-000000000001"),
+            room_type_id=room_type.id,
+            name="Wi-Fi",
+            icon="wifi",
+        )
+        image = MagicMockObject(
+            id=uuid.UUID("f2000000-0000-0000-0000-000000000001"),
+            room_type_id=room_type.id,
+            url="https://example.com/image.jpg",
+            alt_text="Room image",
+            sort_order=1,
+        )
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRepo:
+                mock_instance = MockRepo.return_value
+                mock_instance.get_by_id = AsyncMock(return_value=room_type)
+                mock_instance.list_by_hotel_id = AsyncMock(return_value=[
+                    MagicMockObject(room_type=room_type, amenities=[amenity], images=[image])
+                ])
+
+                response = client_hotel_admin.get(f"/hotel-admin/rooms/{room_type.id}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Deluxe"
+        assert data["hotel_id"] == str(room_type.hotel_id)
+        assert len(data["amenities"]) == 1
+        assert data["amenities"][0]["name"] == "Wi-Fi"
+
+    def test_get_room_detail_not_found(self, client_hotel_admin):
+        other_room = mock_room_type(hotel_id=uuid.UUID("b1000000-0000-0000-0000-000000000999"))
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRepo:
+                mock_instance = MockRepo.return_value
+                mock_instance.get_by_id = AsyncMock(return_value=other_room)
+
+                response = client_hotel_admin.get(f"/hotel-admin/rooms/{other_room.id}")
+
+        assert response.status_code == 404
+        assert "Habitación no encontrada" in response.json()["detail"]
+
+    def test_get_room_detail_forbidden_traveler(self, client_traveler):
+        response = client_traveler.get(f"/hotel-admin/rooms/{uuid.UUID('c1000000-0000-0000-0000-000000000101')}")
+        assert response.status_code == 403
+
+
+class TestHotelAdminRoomCalendar:
+    """Tests para GET /hotel-admin/rooms/{room_id}/calendar"""
+
+    def test_get_room_calendar_success(self, client_hotel_admin):
+        room_type = mock_room_type()
+        mock_items = [
+            MagicMockInventoryCalendar(
+                id=uuid.UUID("e1000000-0000-0000-0000-000000000001"),
+                room_type_id=room_type.id,
+                date="2026-05-01",
+                available_units=5,
+                price_per_night=150.00,
+                currency_code="USD",
+                minimum_stay=2,
+            ),
+        ]
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                mock_room_instance = MockRoomRepo.return_value
+                mock_room_instance.get_by_id = AsyncMock(return_value=room_type)
+
+                with patch("routes.hotel_admin_router.InventoryCalendarRepository") as MockInvRepo:
+                    mock_inv_instance = MockInvRepo.return_value
+                    mock_inv_instance.list_by_date_range = AsyncMock(return_value=mock_items)
+
+                    response = client_hotel_admin.get(
+                        f"/hotel-admin/rooms/{room_type.id}/calendar",
+                        params={"start_date": "2026-05-01", "end_date": "2026-05-01"},
+                    )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["items"][0]["available_units"] == 5
+
+    def test_get_room_calendar_invalid_date_range(self, client_hotel_admin):
+        room_type = mock_room_type()
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                mock_room_instance = MockRoomRepo.return_value
+                mock_room_instance.get_by_id = AsyncMock(return_value=room_type)
+
+                response = client_hotel_admin.get(
+                    f"/hotel-admin/rooms/{room_type.id}/calendar",
+                    params={"start_date": "2026-05-02", "end_date": "2026-05-01"},
+                )
+
+        assert response.status_code == 400
+
+    def test_get_room_calendar_room_not_found(self, client_hotel_admin):
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                mock_room_instance = MockRoomRepo.return_value
+                mock_room_instance.get_by_id = AsyncMock(return_value=None)
+
+                response = client_hotel_admin.get(
+                    "/hotel-admin/rooms/c1000000-0000-0000-0000-000000000999/calendar",
+                    params={"start_date": "2026-05-01", "end_date": "2026-05-01"},
+                )
+
+        assert response.status_code == 404
+
+
+class TestHotelAdminUpdateInventory:
+    """Tests para PATCH /hotel-admin/inventory/{inventory_id}"""
+
+    def test_update_inventory_success(self, client_hotel_admin):
+        room_type = mock_room_type()
+        inventory_item = MagicMockInventoryCalendar(
+            id=uuid.UUID("e1000000-0000-0000-0000-000000000001"),
+            room_type_id=room_type.id,
+            date="2026-05-01",
+            available_units=10,
+            price_per_night=200.00,
+            currency_code="USD",
+            minimum_stay=1,
+        )
+        updated_item = MagicMockInventoryCalendar(
+            id=inventory_item.id,
+            room_type_id=room_type.id,
+            date="2026-05-01",
+            available_units=5,
+            price_per_night=250.00,
+            currency_code="USD",
+            minimum_stay=1,
+        )
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.InventoryCalendarRepository") as MockInvRepo:
+                mock_inv_instance = MockInvRepo.return_value
+                mock_inv_instance.get_by_id = AsyncMock(return_value=inventory_item)
+                mock_inv_instance.update = AsyncMock(return_value=updated_item)
+
+                with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                    mock_room_instance = MockRoomRepo.return_value
+                    mock_room_instance.get_by_id = AsyncMock(return_value=room_type)
+
+                    response = client_hotel_admin.patch(
+                        f"/hotel-admin/inventory/{inventory_item.id}",
+                        json={"available_units": 5, "price_per_night": "250.00"},
+                    )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["available_units"] == 5
+        assert float(data["price_per_night"]) == 250.00
+
+    def test_update_inventory_not_found(self, client_hotel_admin):
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.InventoryCalendarRepository") as MockInvRepo:
+                mock_inv_instance = MockInvRepo.return_value
+                mock_inv_instance.get_by_id = AsyncMock(return_value=None)
+
+                response = client_hotel_admin.patch(
+                    "/hotel-admin/inventory/e1000000-0000-0000-0000-000000000999",
+                    json={"available_units": 5, "price_per_night": "250.00"},
+                )
+
+        assert response.status_code == 404
+        assert "Registro de inventario no encontrado" in response.json()["detail"]
+
+    def test_update_inventory_forbidden_wrong_room(self, client_hotel_admin):
+        other_room = mock_room_type(hotel_id=uuid.UUID("b1000000-0000-0000-0000-000000000999"))
+        inventory_item = MagicMockInventoryCalendar(
+            id=uuid.UUID("e1000000-0000-0000-0000-000000000001"),
+            room_type_id=other_room.id,
+            date="2026-05-01",
+            available_units=10,
+            price_per_night=200.00,
+            currency_code="USD",
+            minimum_stay=1,
+        )
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.InventoryCalendarRepository") as MockInvRepo:
+                mock_inv_instance = MockInvRepo.return_value
+                mock_inv_instance.get_by_id = AsyncMock(return_value=inventory_item)
+
+                with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                    mock_room_instance = MockRoomRepo.return_value
+                    mock_room_instance.get_by_id = AsyncMock(return_value=other_room)
+
+                    response = client_hotel_admin.patch(
+                        f"/hotel-admin/inventory/{inventory_item.id}",
+                        json={"available_units": 5, "price_per_night": "250.00"},
+                    )
+
+        assert response.status_code == 403
+        assert "No tiene permiso" in response.json()["detail"]
+
+
+class TestHotelAdminBulkInventory:
+    """Tests para POST /hotel-admin/inventory/bulk"""
+
+    def test_bulk_inventory_success(self, client_hotel_admin):
+        room_type = mock_room_type()
+        mock_items = [
+            MagicMockInventoryCalendar(
+                id=uuid.UUID("e1000000-0000-0000-0000-000000000001"),
+                room_type_id=room_type.id,
+                date="2026-05-01",
+                available_units=8,
+                price_per_night=180.00,
+                currency_code="USD",
+                minimum_stay=1,
+            ),
+            MagicMockInventoryCalendar(
+                id=uuid.UUID("e1000000-0000-0000-0000-000000000002"),
+                room_type_id=room_type.id,
+                date="2026-05-02",
+                available_units=8,
+                price_per_night=180.00,
+                currency_code="USD",
+                minimum_stay=1,
+            ),
+        ]
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                mock_room_instance = MockRoomRepo.return_value
+                mock_room_instance.get_by_id = AsyncMock(return_value=room_type)
+
+                with patch("routes.hotel_admin_router.InventoryCalendarRepository") as MockInvRepo:
+                    mock_inv_instance = MockInvRepo.return_value
+                    mock_inv_instance.create_range = AsyncMock(return_value=mock_items)
+
+                    response = client_hotel_admin.post(
+                        "/hotel-admin/inventory/bulk",
+                        json={
+                            "room_type_id": str(room_type.id),
+                            "start_date": "2026-05-01",
+                            "end_date": "2026-05-02",
+                            "available_units": 8,
+                            "price_per_night": "180.00",
+                            "currency_code": "USD",
+                            "minimum_stay": 1,
+                        },
+                    )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 2
+        assert data["items"][0]["available_units"] == 8
+
+    def test_bulk_inventory_conflict_existing_dates(self, client_hotel_admin):
+        room_type = mock_room_type()
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                mock_room_instance = MockRoomRepo.return_value
+                mock_room_instance.get_by_id = AsyncMock(return_value=room_type)
+
+                with patch("routes.hotel_admin_router.InventoryCalendarRepository") as MockInvRepo:
+                    mock_inv_instance = MockInvRepo.return_value
+                    mock_inv_instance.create_range = AsyncMock(return_value=None)
+
+                    response = client_hotel_admin.post(
+                        "/hotel-admin/inventory/bulk",
+                        json={
+                            "room_type_id": str(room_type.id),
+                            "start_date": "2026-05-01",
+                            "end_date": "2026-05-02",
+                            "available_units": 8,
+                            "price_per_night": "180.00",
+                        },
+                    )
+
+        assert response.status_code == 409
+        assert "Ya existen registros" in response.json()["detail"]
+
+    def test_bulk_inventory_invalid_date_range(self, client_hotel_admin):
+        room_type = mock_room_type()
+
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                mock_room_instance = MockRoomRepo.return_value
+                mock_room_instance.get_by_id = AsyncMock(return_value=room_type)
+
+                response = client_hotel_admin.post(
+                    "/hotel-admin/inventory/bulk",
+                    json={
+                        "room_type_id": str(room_type.id),
+                        "start_date": "2026-05-02",
+                        "end_date": "2026-05-01",
+                        "available_units": 8,
+                        "price_per_night": "180.00",
+                    },
+                )
+
+        assert response.status_code == 400
+        assert "end_date no puede ser menor" in response.json()["detail"]
+
+    def test_bulk_inventory_room_not_found(self, client_hotel_admin):
+        with patch("routes.hotel_admin_router._get_owned_hotel_id", new=AsyncMock(return_value=uuid.UUID("b1000000-0000-0000-0000-000000000001"))):
+            with patch("routes.hotel_admin_router.RoomTypeRepository") as MockRoomRepo:
+                mock_room_instance = MockRoomRepo.return_value
+                mock_room_instance.get_by_id = AsyncMock(return_value=None)
+
+                response = client_hotel_admin.post(
+                    "/hotel-admin/inventory/bulk",
+                    json={
+                        "room_type_id": "c1000000-0000-0000-0000-000000000999",
+                        "start_date": "2026-05-01",
+                        "end_date": "2026-05-02",
+                        "available_units": 8,
+                        "price_per_night": "180.00",
+                    },
+                )
+
+        assert response.status_code == 404
+        assert "Habitación no encontrada" in response.json()["detail"]

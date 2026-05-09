@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from dataclasses import dataclass
 
@@ -73,3 +73,23 @@ class RoomTypeRepository:
             )
             for rt in room_types
         ]
+
+    async def list_simple_by_hotel_id(
+        self,
+        hotel_id: UUID,
+        active_only: bool = True,
+    ) -> List[RoomType]:
+        """Lista los tipos de habitación de un hotel (solo datos básicos)."""
+        filters = [RoomType.hotel_id == hotel_id]
+        if active_only:
+            filters.append(RoomType.active.is_(True))
+
+        stmt = select(RoomType).where(*filters).order_by(RoomType.name)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_by_id(self, room_type_id: UUID) -> Optional[RoomType]:
+        result = await self.session.execute(
+            select(RoomType).where(RoomType.id == room_type_id)
+        )
+        return result.scalar_one_or_none()

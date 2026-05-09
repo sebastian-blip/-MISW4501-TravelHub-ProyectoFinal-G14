@@ -1,0 +1,17 @@
+info:
+  name: list rooms simple
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{local_core}}/service-core/hotel-admin/rooms/simple"
+  auth:
+    type: bearer
+    token: "{{token_admin}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

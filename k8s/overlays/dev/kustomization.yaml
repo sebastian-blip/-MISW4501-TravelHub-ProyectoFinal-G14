@@ -7,3 +7,4 @@ resources:
   - service-soport
   - service-core
   - service-external
+  - worker

@@ -12,6 +12,9 @@ from pydantic import BaseModel, Field
 from state_machine.simple_reservation_flow import SimpleReservationFlow
 from session_service.sesion_handler import SessionHandler
 from user_service.utils.security import get_current_user_optional
+from user_service.queries.get_user_handler import GetUserByIdQueryHandler
+from user_service.queries.user_queries import GetUserByIdQuery
+
 
 router = APIRouter(prefix="/reservation-flow", tags=["Reservation Flow"])
 
@@ -134,7 +137,6 @@ async def create_reservation(
 async def cancel_reservation(
         request: CancelRequest,
         x_guest_id: str = Header(..., alias="X-Guest-Id")
-
 ):
     """
     Cancela una reserva por código.
@@ -142,8 +144,15 @@ async def cancel_reservation(
     try:
         session_handler = SessionHandler()
         ses = await session_handler.get_session(x_guest_id)
+        handler = GetUserByIdQueryHandler()
+        query = GetUserByIdQuery(ses)
+        user_data = await handler.handle(query)
         flow = SimpleReservationFlow()
+        email = user_data.email
+
         result = await flow.run_cancel_flow(request.confirmation_code)
+        if result.get('success') and result.get('proceed'):
+            await flow.send_email(email, result.get('message'))
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

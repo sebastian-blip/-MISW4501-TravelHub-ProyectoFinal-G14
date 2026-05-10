@@ -10,11 +10,7 @@ from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel, Field
 
 from state_machine.simple_reservation_flow import SimpleReservationFlow
-from session_service.sesion_handler import SessionHandler
 from user_service.utils.security import get_current_user_optional
-from user_service.queries.get_user_handler import GetUserByIdQueryHandler
-from user_service.queries.user_queries import GetUserByIdQuery
-
 
 router = APIRouter(prefix="/reservation-flow", tags=["Reservation Flow"])
 
@@ -136,19 +132,24 @@ async def create_reservation(
 @router.post("/cancel")
 async def cancel_reservation(
         request: CancelRequest,
-        x_guest_id: str = Header(..., alias="X-Guest-Id")
+        current_user: Optional[dict] = Depends(get_current_user_optional),
 ):
     """
     Cancela una reserva por código.
     """
     try:
-        session_handler = SessionHandler()
-        ses = await session_handler.get_session(x_guest_id)
-        handler = GetUserByIdQueryHandler()
-        query = GetUserByIdQuery(ses)
-        user_data = await handler.handle(query)
+        jwt_user_id = current_user.get("user_id") if current_user else None
+
+        if jwt_user_id:
+            user_id = jwt_user_id
+            email = current_user.get('email')
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="Se requiere autenticación (Bearer token)"
+            )
+
         flow = SimpleReservationFlow()
-        email = user_data.email
 
         result = await flow.run_cancel_flow(request.confirmation_code)
         if result.get('success') and result.get('proceed'):

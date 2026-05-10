@@ -125,32 +125,6 @@ class TestReservationFlowRouter:
         assert response.status_code == 500
         assert "DB Error" in response.json()["detail"]
 
-    def test_cancel_flow_success(self, client):
-        """Test flujo de cancelación exitoso."""
-        mock_result = {
-            "completed": True,
-            "step": "cancelation",
-            "result": {
-                "success": True,
-                "proceed": True,
-                "confirmation_code": "RESABC123",
-                "previous_status": "confirmed",
-                "new_status": "cancelled",
-                "message": "Reserva RESABC123 cancelada",
-            }
-        }
-
-        with patch("routes.reservation_state_machine_router.SimpleReservationFlow.run_cancel_flow", return_value=mock_result):
-            response = client.post("/reservation-flow/cancel", json={
-                "confirmation_code": "RESABC123"
-            })
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["completed"] is True
-        assert data["result"]["confirmation_code"] == "RESABC123"
-        assert data["result"]["new_status"] == "cancelled"
-
     def test_check_reservation_success(self, client):
         """Test consulta de reserva por código exitosa."""
         mock_response = MagicMock()

@@ -7,6 +7,9 @@ from typing import Optional, Dict, Any
 from uuid import UUID
 from decimal import Decimal
 from datetime import date, datetime
+import logging
+import httpx
+import os
 
 from mediatr import Mediator
 from reservation_service.commands import CreateReservationCommand, UpdateReservationStatusCommand
@@ -15,6 +18,10 @@ from .event_machine import EventMachine
 from infrastructure.messaging.kafka.producer import publish_reservation_validate
 from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
 from infrastructure.database import async_session_maker
+
+
+url_mail=os.getenv("MAILER")
+token_mailer = os.getenv("TOKEN_SOPORT_SERVICES")
 
 
 class SimpleReservationFlow:
@@ -188,7 +195,7 @@ class SimpleReservationFlow:
                 status="cancelled"
             )
             result = await self.mediator.send_async(command)
-            
+
             return {
                 "success": True,
                 "proceed": True,
@@ -205,8 +212,27 @@ class SimpleReservationFlow:
                 "error": str(e),
                 "message": f"Error al cancelar: {str(e)}"
             }
+
+    async def send_email(self, email, message):
+        try:
+            if url_mail and token_mailer:
+                async with httpx.AsyncClient() as client:
+                    headers = {
+                        "Authorization": f"Bearer {token_mailer}",
+                        "Content-Type": "application/json",
+                    }
+                    response = await client.post(url_mail, json={
+                        "email": email,
+                        "message": message
+                    }, headers=headers)
+                    logging.info(f"[Mailer] Response: {response.status_code}")
+            else:
+                logging.warning("[Mailer] MAILER o TOKEN_SOPORT_SERVICES no configurados, email no enviado")
+        except Exception as e:
+            logging.error(f"[Mailer] Error enviando email: {e}")
     
     # ========== EJECUCIÓN DEL FLUJO COMPLETO ==========
+
     async def run_create_flow(self) -> Dict[str, Any]:
         """
         Ejecuta el flujo completo: validate → create

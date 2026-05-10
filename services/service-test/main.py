@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="TravelHub Service Test - Kafka",
-    version="0.2.1",
+    version="0.2.2",
     lifespan=lifespan,
     root_path="/service-test"
 )

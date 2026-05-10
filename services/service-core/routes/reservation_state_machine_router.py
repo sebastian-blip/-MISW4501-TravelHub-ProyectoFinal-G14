@@ -130,13 +130,31 @@ async def create_reservation(
 
 
 @router.post("/cancel")
-async def cancel_reservation(request: CancelRequest):
+async def cancel_reservation(
+        request: CancelRequest,
+        current_user: Optional[dict] = Depends(get_current_user_optional),
+):
     """
     Cancela una reserva por código.
     """
     try:
+        jwt_user_id = current_user.get("user_id") if current_user else None
+
+        if jwt_user_id:
+            user_id = jwt_user_id
+            email = current_user.get('email')
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="Se requiere autenticación (Bearer token)"
+            )
+
         flow = SimpleReservationFlow()
+
         result = await flow.run_cancel_flow(request.confirmation_code)
+        cancel_result = result.get('result')
+        if cancel_result.get('success') and cancel_result.get('proceed'):
+            await flow.send_email(email, cancel_result.get('message'))
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

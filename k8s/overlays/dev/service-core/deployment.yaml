@@ -22,7 +22,7 @@ spec:
 
       containers:
         - name: service-core
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:a2a7b79bbad0ee436c6d5a031ce84546a95a736c
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:3951d0201d18fc5be95800886943c24faaffb5d1
           imagePullPolicy: IfNotPresent
 
           command: [ "uvicorn" ]

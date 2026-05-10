@@ -92,8 +92,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="TravelHub User Service",
-    version="1.0.0",
+    title="Service Core",
+    version="0.2.2",
     lifespan=lifespan,
     root_path="/service-core"
 )

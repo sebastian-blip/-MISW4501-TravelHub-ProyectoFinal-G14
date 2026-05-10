@@ -10,8 +10,8 @@ from routers.analitycs_router import router as anatics_router
 
 
 app = FastAPI(
-    title="TravelHub API",
-    version="0.1.1",
+    title="Service Soport",
+    version="0.1.2",
     root_path="/service-soport"
 )
 

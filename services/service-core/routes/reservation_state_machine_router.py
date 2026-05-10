@@ -138,7 +138,6 @@ async def cancel_reservation(
     Cancela una reserva por código.
     """
     try:
-        print(current_user)
         jwt_user_id = current_user.get("user_id") if current_user else None
 
         if jwt_user_id:
@@ -153,8 +152,8 @@ async def cancel_reservation(
         flow = SimpleReservationFlow()
 
         result = await flow.run_cancel_flow(request.confirmation_code)
-        if result.get('success') and result.get('proceed'):
-            print(1)
+        cancel_result = result.get('result')
+        if cancel_result.get('success') and cancel_result.get('proceed'):
             await flow.send_email(email, result.get('message'))
         return result
     except Exception as e:

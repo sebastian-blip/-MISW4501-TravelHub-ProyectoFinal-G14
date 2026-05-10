@@ -154,7 +154,7 @@ async def cancel_reservation(
         result = await flow.run_cancel_flow(request.confirmation_code)
         cancel_result = result.get('result')
         if cancel_result.get('success') and cancel_result.get('proceed'):
-            await flow.send_email(email, result.get('message'))
+            await flow.send_email(email, cancel_result.get('message'))
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

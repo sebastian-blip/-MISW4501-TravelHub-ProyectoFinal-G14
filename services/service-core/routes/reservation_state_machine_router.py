@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel, Field
 
 from state_machine.simple_reservation_flow import SimpleReservationFlow
+from session_service.sesion_handler import SessionHandler
 from user_service.utils.security import get_current_user_optional
 
 router = APIRouter(prefix="/reservation-flow", tags=["Reservation Flow"])
@@ -130,11 +131,17 @@ async def create_reservation(
 
 
 @router.post("/cancel")
-async def cancel_reservation(request: CancelRequest):
+async def cancel_reservation(
+        request: CancelRequest,
+        x_guest_id: str = Header(..., alias="X-Guest-Id")
+
+):
     """
     Cancela una reserva por código.
     """
     try:
+        session_handler = SessionHandler()
+        ses = await session_handler.get_session(x_guest_id)
         flow = SimpleReservationFlow()
         result = await flow.run_cancel_flow(request.confirmation_code)
         return result

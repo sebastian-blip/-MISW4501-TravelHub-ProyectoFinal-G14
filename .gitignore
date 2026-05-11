@@ -2,9 +2,16 @@
 .idea/
 
 # Python
+venv/
 .venv/
 .ven/
 __pycache__/
 *.py[cod]
 *.pyo
 .Python
+
+# Firebase service account JSONs — credenciales sensibles, viven en K8s
+# Secret. Cualquier archivo que matchee este patrón está prohibido.
+*firebase-adminsdk*.json
+firebase-service-account*.json
+google-services.json

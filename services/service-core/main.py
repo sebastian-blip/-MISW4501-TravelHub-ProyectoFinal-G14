@@ -22,6 +22,7 @@ from routes.reservation_router import router as reservation_router
 from routes.reservation_state_machine_router import router as reservation_flow_router
 from routes.test_router import router as test_router
 from routes.hotel_admin_router import router as hotel_admin_router
+from routes.device_token_router import router as device_token_router
 from infrastructure.messaging.kafka.producer import publish_prueba
 from infrastructure.messaging.kafka.reply_consumer import wait_for_reply
 
@@ -129,6 +130,7 @@ app.include_router(reservation_router)
 app.include_router(reservation_flow_router)
 app.include_router(test_router)
 app.include_router(hotel_admin_router)
+app.include_router(device_token_router)
 
 
 @app.get("/config/kafka")

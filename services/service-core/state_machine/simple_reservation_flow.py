@@ -230,6 +230,55 @@ class SimpleReservationFlow:
                 logging.warning("[Mailer] MAILER o TOKEN_SOPORT_SERVICES no configurados, email no enviado")
         except Exception as e:
             logging.error(f"[Mailer] Error enviando email: {e}")
+
+    async def send_push(self, user_id, title: str, body: str, data: dict = None):
+        """
+        Envía una notificación push FCM al usuario indicado. Busca todos los
+        device_tokens registrados para `user_id`, llama a Firebase Admin SDK
+        en un thread auxiliar (el SDK es sync), y reporta cuántos envíos
+        tuvieron éxito.
+
+        Tolerante a fallos: si Firebase no está configurado (sin
+        FIREBASE_SERVICE_ACCOUNT_PATH), si el usuario no tiene tokens, o si
+        Firebase rechaza algunos tokens, NO levanta. El push es nice-to-have
+        — no debe abortar la confirmación de una reserva ya creada.
+        """
+        if user_id is None:
+            return  # reserva anónima → no hay user al que pushear
+        try:
+            import asyncio
+            from sqlmodel import select
+            from infrastructure.database import async_session_maker
+            from infrastructure.notifications.fcm_sender import send_to_tokens
+            from domain.models.device_token import DeviceToken
+
+            user_uuid = user_id if not isinstance(user_id, str) else UUID(user_id)
+
+            async with async_session_maker() as session:
+                stmt = select(DeviceToken).where(DeviceToken.user_id == user_uuid)
+                result = await session.execute(stmt)
+                tokens = [r.token for r in result.scalars().all() if r.token]
+
+            if not tokens:
+                logging.info(f"[FCM] user {user_uuid} sin device_tokens, skip push")
+                return
+
+            # firebase_admin.messaging.send es síncrono — lo corremos en el
+            # default executor para no bloquear el event loop.
+            loop = asyncio.get_event_loop()
+            sent = await loop.run_in_executor(
+                None,
+                send_to_tokens,
+                tokens,
+                title,
+                body,
+                data or {},
+            )
+            logging.info(
+                f"[FCM] {sent}/{len(tokens)} push entregados para user {user_uuid}"
+            )
+        except Exception as e:
+            logging.error(f"[FCM] error en send_push: {e}")
     
     # ========== EJECUCIÓN DEL FLUJO COMPLETO ==========
 
@@ -253,10 +302,31 @@ class SimpleReservationFlow:
         self.current_step = "create"
         self.history.append("create")
         step2 = await self.step_create()
-        
+
         if not step2["success"]:
             return {"completed": False, "step": "create", "result": step2}
-        
+
+        # Push notification: notificamos al viajero que su reserva quedó
+        # confirmada. Sólo aplica cuando hay user_id (reservas autenticadas);
+        # para reservas anónimas se ignora. Tolerante a fallos — si Firebase
+        # no está configurado o el envío falla, sólo queda en el log.
+        try:
+            hotel_name = (step2.get("hotel") or {}).get("name") or "tu hotel"
+            confirmation_code = step2.get("confirmation_code") or ""
+            reservation_id = step2.get("reservation_id") or ""
+            await self.send_push(
+                user_id=self.context.get("user_id"),
+                title="Reserva confirmada",
+                body=f"Tu reserva en {hotel_name} está lista. Código: {confirmation_code}",
+                data={
+                    "category": "booking_confirmation",
+                    "reservation_id": reservation_id,
+                    "confirmation_code": confirmation_code,
+                },
+            )
+        except Exception as e:
+            logging.error(f"[FCM] post-create send_push falló: {e}")
+
         return {
             "completed": True,
             "step": "create",

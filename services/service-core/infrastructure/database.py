@@ -26,6 +26,10 @@ async def init_db():
         import domain.models.inventory_calendar
         import domain.models.task_order
         import domain.models.reservation
+        # Push notifications (TRAVEL-173): tabla device_tokens. Se auto-crea
+        # acá; en prod la migración manual `migrations/create_device_tokens.sql`
+        # también la crea.
+        import domain.models.device_token  # noqa: F401
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

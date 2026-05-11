@@ -155,6 +155,17 @@ async def cancel_reservation(
         cancel_result = result.get('result')
         if cancel_result.get('success') and cancel_result.get('proceed'):
             await flow.send_email(email, cancel_result.get('message'))
+            # Push paralelo al email para mejor entregabilidad. Tolerante a
+            # fallos: si Firebase no está configurado, queda no-op.
+            await flow.send_push(
+                user_id=user_id,
+                title="Reserva cancelada",
+                body=cancel_result.get('message') or "Tu reserva fue cancelada.",
+                data={
+                    "category": "booking_cancellation",
+                    "confirmation_code": request.confirmation_code,
+                },
+            )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

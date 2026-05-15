@@ -1,11 +1,12 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: service-core
   labels:
     app.kubernetes.io/name: service-core
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: service-core
@@ -15,11 +16,9 @@ spec:
         app.kubernetes.io/name: service-core
     spec:
       serviceAccountName: service-core-sa
-
       volumes:
         - name: kafka-ca
           emptyDir: {}
-
       containers:
         - name: service-core
           image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:d51b26c1bd5969dbd8d845a6a74f6d28598541b2
@@ -56,3 +55,18 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+
+  strategy:
+    canary:
+      steps:
+        - setWeight: 50       # 50% del tráfico a la nueva versión
+        - pause: {duration: 60s}
+        - setWeight: 100      # 100% del tráfico si todo OK

@@ -8,7 +8,7 @@ spec:
     apiVersion: argoproj.io/v1alpha1
     kind: Rollout
     name: service-soport
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 5
   metrics:
     - type: Resource

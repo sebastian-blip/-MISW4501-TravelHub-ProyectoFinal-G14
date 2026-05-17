@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{core}}/reservations/code/RES730A8987"
+  url: "{{local_core}}/reservations/code/RES6A9D4E8C"
   auth: inherit
 
 settings:

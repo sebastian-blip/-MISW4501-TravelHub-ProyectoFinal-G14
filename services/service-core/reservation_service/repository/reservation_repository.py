@@ -5,6 +5,7 @@ from datetime import date
 
 from sqlalchemy import select, desc, or_, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from domain.models.reservation import Reservation
 from domain.models.room_type import RoomType
 
@@ -16,18 +17,28 @@ class ReservationRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    def _with_relations(self, statement):
+        return statement.options(
+            selectinload(Reservation.user),
+            selectinload(Reservation.reservation_guests),
+        )
+
     async def get_by_id(self, reservation_id: UUID) -> Optional[Reservation]:
-        statement = select(Reservation).where(Reservation.id == reservation_id)
+        statement = self._with_relations(
+            select(Reservation).where(Reservation.id == reservation_id)
+        )
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
 
     async def get_by_confirmation_code(self, code: str) -> Optional[Reservation]:
-        statement = select(Reservation).where(Reservation.confirmation_code == code)
+        statement = self._with_relations(
+            select(Reservation).where(Reservation.confirmation_code == code)
+        )
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
 
     async def list_by_user(self, user_id: UUID, limit: int = 10, offset: int = 0) -> List[Reservation]:
-        statement = (
+        statement = self._with_relations(
             select(Reservation)
             .where(Reservation.user_id == user_id)
             .order_by(desc(Reservation.created_at))
@@ -38,7 +49,7 @@ class ReservationRepository:
         return result.scalars().all()
 
     async def list_by_user_or_guest(self, user_id: UUID, limit: int = 10, offset: int = 0) -> List[Reservation]:
-        statement = (
+        statement = self._with_relations(
             select(Reservation)
             .where(or_(Reservation.user_id == user_id, Reservation.user_guest_id == user_id))
             .order_by(desc(Reservation.created_at))
@@ -49,7 +60,7 @@ class ReservationRepository:
         return result.scalars().all()
 
     async def list_all(self, limit: int = 10, offset: int = 0) -> List[Reservation]:
-        statement = (
+        statement = self._with_relations(
             select(Reservation)
             .order_by(desc(Reservation.created_at))
             .limit(limit)

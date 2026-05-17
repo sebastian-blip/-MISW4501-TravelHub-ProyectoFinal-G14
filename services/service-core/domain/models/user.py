@@ -1,6 +1,9 @@
-from sqlmodel import Field, SQLModel
-from typing import Optional
+from sqlmodel import Field, SQLModel, Relationship
+from typing import Optional, TYPE_CHECKING, List
 import uuid
+
+if TYPE_CHECKING:
+    from domain.models.reservation import Reservation
 
 
 class User(SQLModel, table=True):
@@ -16,6 +19,8 @@ class User(SQLModel, table=True):
     email_verified: bool = Field(default=False)
     mfa_enabled: bool = Field(default=False)
     active: bool = Field(default=True)
+
+    reservations: List["Reservation"] = Relationship(back_populates="user")
 
     def __str__(self):
         return self.email

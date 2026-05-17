@@ -88,7 +88,7 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
 
-@router.post('/deactivated', status_code=status.HTTP_204_NO_CONTENT)
+@router.post('/deactivated')
 async def deactivated(
         current_user: Optional[dict] = Depends(get_current_user_optional)
 ):

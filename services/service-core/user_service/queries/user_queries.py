@@ -12,6 +12,9 @@ class GetUserByIdQuery:
 class GetUserByEmailQuery:
     email: str
 
+@dataclass
+class DeactivatedUserQuery:
+    user_id: UUID
 
 @dataclass
 class GetUserProfileQuery:

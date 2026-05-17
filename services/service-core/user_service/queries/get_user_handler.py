@@ -8,6 +8,7 @@ from user_service.queries.user_queries import (
     UserResponse,
     UserProfileResponse,
 )
+from user_service.queries.user_queries import GetUserByIdQuery, GetUserByEmailQuery, UserResponse, DeactivatedUserQuery
 from user_service.repository.user_repository import UserRepository
 from reservation_service.repository.reservation_repository import ReservationRepository
 
@@ -51,3 +52,13 @@ class GetUserProfileQueryHandler:
             pending_count = await reservation_repo.count_pending_by_user(query.user_id)
 
             return UserProfileResponse.from_user_and_counts(user, past_count, pending_count)
+
+@Mediator.handler
+class DeactivatedUserQueryHandler:
+    async def handle(self, query: DeactivatedUserQuery) -> dict:
+        async with async_session_maker() as session:
+            repository = UserRepository(session)
+            user = await repository.anonymize_user_data(str(query.user_id))
+            if user is None:
+                raise ValueError(f"Usuario '{query.user_id}' no encontrado")
+            return {'deactivated': True, 'user_id': str(query.user_id)}

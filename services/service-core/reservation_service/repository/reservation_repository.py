@@ -59,6 +59,21 @@ class ReservationRepository:
         result = await self.session.execute(statement)
         return result.scalars().all()
 
+    async def list_activated_by_user_or_guest(self, user_id: UUID) -> List[Reservation]:
+        statement = self._with_relations(
+            select(Reservation)
+            .where(
+                or_(
+                    Reservation.user_id == user_id,
+                    Reservation.user_guest_id == user_id
+                )
+            )
+            .where(Reservation.status.in_(["confirmed", "Confirmed", "Pending", "pending"]))
+            .order_by(desc(Reservation.created_at))
+        )
+        result = await self.session.execute(statement)
+        return result.scalars().all()
+
     async def list_all(self, limit: int = 10, offset: int = 0) -> List[Reservation]:
         statement = self._with_relations(
             select(Reservation)

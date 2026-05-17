@@ -86,6 +86,56 @@ class TestUserRouter:
         assert response.status_code == 404
         assert "no encontrado" in response.json()["detail"]
 
+    def test_get_user_profile_success(self, client):
+        """Test obtener perfil de usuario autenticado con conteo de reservas exitoso."""
+        user_id = "a2000000-0000-0000-0000-000000000001"
+        mock_response = {
+            "id": user_id,
+            "email": "test@example.com",
+            "first_name": "Juan",
+            "last_name": "Pérez",
+            "phone": "+573001234567",
+            "country_id": "a1000000-0000-0000-0000-000000000001",
+            "user_type": "traveler",
+            "email_verified": True,
+            "mfa_enabled": False,
+            "active": True,
+            "past_reservations_count": 3,
+            "pending_reservations_count": 1,
+        }
+
+        from routes.user_router import get_current_user
+
+        with patch("routes.user_router.Mediator.send", new_callable=AsyncMock, return_value=mock_response):
+            app = FastAPI()
+            app.include_router(user_router)
+            app.dependency_overrides[get_current_user] = lambda: {"user_id": user_id}
+            client_with_auth = TestClient(app)
+            response = client_with_auth.get("/users/profile")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == user_id
+        assert data["email"] == "test@example.com"
+        assert data["past_reservations_count"] == 3
+        assert data["pending_reservations_count"] == 1
+
+    def test_get_user_profile_not_found(self, client):
+        """Test obtener perfil de usuario inexistente retorna 404."""
+        user_id = "a2000000-0000-0000-0000-000000000999"
+
+        from routes.user_router import get_current_user
+
+        with patch("routes.user_router.Mediator.send", new_callable=AsyncMock, side_effect=ValueError("Usuario no encontrado")):
+            app = FastAPI()
+            app.include_router(user_router)
+            app.dependency_overrides[get_current_user] = lambda: {"user_id": user_id}
+            client_with_auth = TestClient(app)
+            response = client_with_auth.get("/users/profile")
+
+        assert response.status_code == 404
+        assert "no encontrado" in response.json()["detail"]
+
     def test_get_user_invalid_uuid(self, client):
         """Test obtener usuario con UUID inválido retorna 422."""
         response = client.get("/users/not-a-uuid")

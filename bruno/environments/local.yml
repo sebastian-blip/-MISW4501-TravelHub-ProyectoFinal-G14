@@ -1,7 +1,7 @@
 name: local
 variables:
   - name: token
-    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwidXNlcl90eXBlIjoidHJhdmVsZXIiLCJleHAiOjE3NzU4NDQ4OTJ9.GVSLwG7clW6WzjzsK9PR2Ag6uRUC9nr23fE5r9Kh2JQ
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzc2NDg3MWUtYzQzNC00ZjAwLWI1OTktNWE1ODlhOTkzNWM5IiwiZW1haWwiOiJqdWFucGQuMjZAZ21haWwuY29tIiwidXNlcl90eXBlIjoidHJhdmVsZXIiLCJleHAiOjE3NzkwNTQwMzR9.rV3_r_Q2v-PkUflRl8tx_EwdihFZxtzWeW3uSRXpH8s
   - name: local_core
     value: http://0.0.0.0:8000
   - name: core

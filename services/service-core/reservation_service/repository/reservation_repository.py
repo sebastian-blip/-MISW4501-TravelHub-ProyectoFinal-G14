@@ -159,6 +159,24 @@ class ReservationRepository:
         result = await self.session.execute(statement)
         return result.all()
 
+    async def count_past_by_user(self, user_id: UUID) -> int:
+        statement = (
+            select(func.count(Reservation.id))
+            .where(Reservation.user_id == user_id)
+            .where(Reservation.check_out < date.today())
+        )
+        result = await self.session.execute(statement)
+        return result.scalar_one()
+
+    async def count_pending_by_user(self, user_id: UUID) -> int:
+        statement = (
+            select(func.count(Reservation.id))
+            .where(Reservation.user_id == user_id)
+            .where(Reservation.status == "pending")
+        )
+        result = await self.session.execute(statement)
+        return result.scalar_one()
+
     async def update_status(self, reservation_id: UUID, status: str) -> Optional[Reservation]:
         if status not in VALID_STATUSES:
             raise ValueError(f"Status '{status}' inválido. Use: {VALID_STATUSES}")

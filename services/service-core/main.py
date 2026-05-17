@@ -94,7 +94,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Service Core",
-    version="0.2.2",
+    version="0.3",
     lifespan=lifespan,
     root_path="/service-core"
 )

@@ -97,7 +97,7 @@ async def deactivated(
     if jwt_user_id:
         user_id = jwt_user_id
     else:
-        return HTTPException(
+        raise HTTPException(
             status_code=401,
             detail="Se requiere autenticación (Bearer token)"
         )

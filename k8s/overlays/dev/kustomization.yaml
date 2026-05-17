@@ -4,6 +4,8 @@ kind: Kustomization
 resources:
   - platform/namespace.yaml
   - platform/external-secrets
+  - platform/rol_rbac.yaml
+  - platform/argo-rollouts-configmap.yaml
   - service-soport
   - service-core
   - service-external

@@ -21,7 +21,33 @@ class TestGetReservationByIdHandler:
     """Tests para GetReservationByIdHandler."""
 
     @pytest.fixture
-    def mock_reservation(self):
+    def mock_user(self):
+        """Mock de usuario."""
+        user = MagicMock()
+        user.id = uuid.UUID("a2000000-0000-0000-0000-000000000001")
+        user.email = "test@example.com"
+        user.first_name = "John"
+        user.last_name = "Doe"
+        user.phone = "+1234567890"
+        user.user_type = "traveler"
+        return user
+
+    @pytest.fixture
+    def mock_guests(self):
+        """Mock de huéspedes."""
+        guest = MagicMock()
+        guest.id = uuid.UUID("e1000000-0000-0000-0000-000000000001")
+        guest.first_name = "Jane"
+        guest.last_name = "Doe"
+        guest.document_type = "passport"
+        guest.document_number = "AB123456"
+        guest.nationality = "US"
+        guest.email = "jane@example.com"
+        guest.is_primary = True
+        return [guest]
+
+    @pytest.fixture
+    def mock_reservation(self, mock_user, mock_guests):
         """Mock de reservación existente."""
         reservation = MagicMock()
         reservation.id = uuid.UUID("d1000000-0000-0000-0000-000000000001")
@@ -43,6 +69,8 @@ class TestGetReservationByIdHandler:
         reservation.confirmation_code = "RES123456"
         reservation.created_at = datetime(2026, 1, 1, 12, 0, 0)
         reservation.updated_at = None
+        reservation.user = mock_user
+        reservation.reservation_guests = mock_guests
         return reservation
 
     @pytest.mark.asyncio
@@ -69,6 +97,10 @@ class TestGetReservationByIdHandler:
             assert result.confirmation_code == "RES123456"
             assert result.status == "pending"
             assert result.total_price == Decimal("525.00")
+            assert result.user is not None
+            assert result.user.email == "test@example.com"
+            assert len(result.reservation_guests) == 1
+            assert result.reservation_guests[0].first_name == "Jane"
 
     @pytest.mark.asyncio
     async def test_get_reservation_by_id_not_found(self):
@@ -96,7 +128,33 @@ class TestGetReservationByCodeHandler:
     """Tests para GetReservationByCodeHandler."""
 
     @pytest.fixture
-    def mock_reservation(self):
+    def mock_user(self):
+        """Mock de usuario."""
+        user = MagicMock()
+        user.id = uuid.UUID("a2000000-0000-0000-0000-000000000001")
+        user.email = "test@example.com"
+        user.first_name = "John"
+        user.last_name = "Doe"
+        user.phone = "+1234567890"
+        user.user_type = "traveler"
+        return user
+
+    @pytest.fixture
+    def mock_guests(self):
+        """Mock de huéspedes."""
+        guest = MagicMock()
+        guest.id = uuid.UUID("e1000000-0000-0000-0000-000000000001")
+        guest.first_name = "Jane"
+        guest.last_name = "Doe"
+        guest.document_type = "passport"
+        guest.document_number = "AB123456"
+        guest.nationality = "US"
+        guest.email = "jane@example.com"
+        guest.is_primary = True
+        return [guest]
+
+    @pytest.fixture
+    def mock_reservation(self, mock_user, mock_guests):
         """Mock de reservación existente."""
         reservation = MagicMock()
         reservation.id = uuid.UUID("d1000000-0000-0000-0000-000000000001")
@@ -118,6 +176,8 @@ class TestGetReservationByCodeHandler:
         reservation.confirmation_code = "RESABC123"
         reservation.created_at = datetime(2026, 1, 1, 12, 0, 0)
         reservation.updated_at = datetime(2026, 1, 2, 10, 0, 0)
+        reservation.user = mock_user
+        reservation.reservation_guests = mock_guests
         return reservation
 
     @pytest.mark.asyncio
@@ -142,6 +202,10 @@ class TestGetReservationByCodeHandler:
             assert isinstance(result, ReservationResponse)
             assert result.confirmation_code == "RESABC123"
             assert result.status == "confirmed"
+            assert result.user is not None
+            assert result.user.email == "test@example.com"
+            assert len(result.reservation_guests) == 1
+            assert result.reservation_guests[0].first_name == "Jane"
 
     @pytest.mark.asyncio
     async def test_get_reservation_by_code_not_found(self):
@@ -169,7 +233,19 @@ class TestListReservationsByUserHandler:
     """Tests para ListReservationsByUserHandler."""
 
     @pytest.fixture
-    def mock_reservations(self):
+    def mock_user(self):
+        """Mock de usuario."""
+        user = MagicMock()
+        user.id = uuid.UUID("a2000000-0000-0000-0000-000000000001")
+        user.email = "test@example.com"
+        user.first_name = "John"
+        user.last_name = "Doe"
+        user.phone = "+1234567890"
+        user.user_type = "traveler"
+        return user
+
+    @pytest.fixture
+    def mock_reservations(self, mock_user):
         """Mock de lista de reservaciones."""
         reservations = []
         for i in range(3):
@@ -193,6 +269,8 @@ class TestListReservationsByUserHandler:
             r.confirmation_code = f"RES00{i+1}"
             r.created_at = datetime(2026, 1, i + 1, 12, 0, 0)
             r.updated_at = None
+            r.user = mock_user
+            r.reservation_guests = []
             reservations.append(r)
         return reservations
 
@@ -256,7 +334,19 @@ class TestListAllReservationsHandler:
     """Tests para ListAllReservationsHandler."""
 
     @pytest.fixture
-    def mock_reservations(self):
+    def mock_user(self):
+        """Mock de usuario."""
+        user = MagicMock()
+        user.id = uuid.UUID("a2000000-0000-0000-0000-000000000001")
+        user.email = "test@example.com"
+        user.first_name = "John"
+        user.last_name = "Doe"
+        user.phone = "+1234567890"
+        user.user_type = "traveler"
+        return user
+
+    @pytest.fixture
+    def mock_reservations(self, mock_user):
         """Mock de lista de reservaciones."""
         reservations = []
         for i in range(5):
@@ -280,6 +370,8 @@ class TestListAllReservationsHandler:
             r.confirmation_code = f"ALL00{i+1}"
             r.created_at = datetime(2026, 2, i + 1, 12, 0, 0)
             r.updated_at = None
+            r.user = mock_user
+            r.reservation_guests = []
             reservations.append(r)
         return reservations
 
@@ -310,6 +402,24 @@ class TestListAllReservationsHandler:
 
     def test_reservation_response_from_orm(self):
         """Test conversión de ORM a ReservationResponse."""
+        user = MagicMock()
+        user.id = uuid.UUID("a2000000-0000-0000-0000-000000000001")
+        user.email = "test@example.com"
+        user.first_name = "John"
+        user.last_name = "Doe"
+        user.phone = "+1234567890"
+        user.user_type = "traveler"
+
+        guest = MagicMock()
+        guest.id = uuid.UUID("e1000000-0000-0000-0000-000000000001")
+        guest.first_name = "Jane"
+        guest.last_name = "Doe"
+        guest.document_type = "passport"
+        guest.document_number = "AB123456"
+        guest.nationality = "US"
+        guest.email = "jane@example.com"
+        guest.is_primary = True
+
         reservation = MagicMock()
         reservation.id = uuid.UUID("d1000000-0000-0000-0000-000000000001")
         reservation.user_id = uuid.UUID("a2000000-0000-0000-0000-000000000001")
@@ -330,6 +440,8 @@ class TestListAllReservationsHandler:
         reservation.confirmation_code = "RES123456"
         reservation.created_at = datetime(2026, 1, 1, 12, 0, 0)
         reservation.updated_at = None
+        reservation.user = user
+        reservation.reservation_guests = [guest]
 
         response = ReservationResponse.from_orm(reservation)
 
@@ -338,3 +450,7 @@ class TestListAllReservationsHandler:
         assert response.status == "pending"
         assert response.total_price == Decimal("525.00")
         assert response.special_requests == "Vista al mar"
+        assert response.user is not None
+        assert response.user.email == "test@example.com"
+        assert len(response.reservation_guests) == 1
+        assert response.reservation_guests[0].first_name == "Jane"

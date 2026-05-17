@@ -1,15 +1,19 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TYPE_CHECKING, List
 from uuid import UUID, uuid4
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+
+if TYPE_CHECKING:
+    from domain.models.user import User
+    from domain.models.reservation_guest import ReservationGuest
 
 
 class Reservation(SQLModel, table=True):
     __tablename__ = "reservations"
     
     id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
-    user_id: Optional[UUID] = Field(default=None, index=True)
+    user_id: Optional[UUID] = Field(default=None, index=True, foreign_key="users.id")
     hotel_id: UUID = Field(index=True)
     room_type_id: UUID = Field(index=True)
     cart_id: Optional[UUID] = Field(default=None, index=True)
@@ -32,3 +36,6 @@ class Reservation(SQLModel, table=True):
     
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default=None)
+
+    user: Optional["User"] = Relationship(back_populates="reservations")
+    reservation_guests: List["ReservationGuest"] = Relationship(back_populates="reservation")

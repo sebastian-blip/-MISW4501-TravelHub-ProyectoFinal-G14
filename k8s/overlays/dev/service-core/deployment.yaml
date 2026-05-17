@@ -21,7 +21,7 @@ spec:
           emptyDir: {}
       containers:
         - name: service-core
-          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:test-canary
+          image: 345340320521.dkr.ecr.us-east-2.amazonaws.com/service-core:fallo
           imagePullPolicy: IfNotPresent
 
           command: [ "uvicorn" ]

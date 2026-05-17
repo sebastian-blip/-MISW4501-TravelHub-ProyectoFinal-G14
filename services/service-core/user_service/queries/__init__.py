@@ -1,12 +1,15 @@
 from .user_queries import (
     GetUserByIdQuery,
     GetUserByEmailQuery,
-    UserResponse
+    UserResponse,
+    DeactivatedUserQuery
 
 )
 from .get_user_handler import (
     GetUserByIdQueryHandler,
-    GetUserByEmailQueryHandler
+    GetUserByEmailQueryHandler,
+    DeactivatedUserQueryHandler
+
 
 )
 
@@ -14,6 +17,8 @@ __all__ = [
     "GetUserByIdQuery",
     "GetUserByEmailQuery",
     "UserResponse",
+    "DeactivatedUserQuery",
+    "DeactivatedUserQueryHandler",
     "GetUserByIdQueryHandler",
     "GetUserByEmailQueryHandler"
 ]

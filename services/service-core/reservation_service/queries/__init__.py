@@ -5,12 +5,14 @@ from .reservation_queries import (
     ListAllReservationsQuery,
     ReservationResponse,
     ReservationListResponse,
+    GetActivatedReservationsByUserQuery
 )
 from .get_reservation_handler import (
     GetReservationByIdHandler,
     GetReservationByCodeHandler,
     ListReservationsByUserHandler,
     ListAllReservationsHandler,
+    GetActivatedReservationsByUserHandler
 )
 
 __all__ = [
@@ -19,6 +21,8 @@ __all__ = [
     "ListReservationsByUserQuery",
     "ListAllReservationsQuery",
     "ReservationResponse",
+    "GetActivatedReservationsByUserQuery",
+    "GetActivatedReservationsByUserHandler",
     "GetReservationByIdHandler",
     "GetReservationByCodeHandler",
     "ListReservationsByUserHandler",

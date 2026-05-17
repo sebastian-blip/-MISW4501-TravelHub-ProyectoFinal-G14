@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from sqlmodel import select
+from sqlmodel import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from domain.models.user import User
 
@@ -21,6 +21,29 @@ class UserRepository:
         statement = select(User).where(User.id == UUID(user_id) if isinstance(user_id, str) else user_id).where(User.active == True)
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
+
+    async def anonymize_user_data(self, user_id: str) -> bool:
+        """
+        Cumple con el Derecho al Olvido anonimizando datos identificables.
+        """
+        target_id = UUID(user_id) if isinstance(user_id, str) else user_id
+
+        statement = (
+            update(User)
+            .where(User.id == target_id)
+            .values(
+                first_name="anonimo",
+                last_name="anonimo",
+                email=f"deleted_{target_id}@example.com",
+                phone="000000000",
+                active=False
+            )
+        )
+
+        result = await self.session.execute(statement)
+        await self.session.commit()
+
+        return result.rowcount > 0
 
     async def email_exists(self, email: str) -> bool:
         statement = select(User).where(User.email == email)

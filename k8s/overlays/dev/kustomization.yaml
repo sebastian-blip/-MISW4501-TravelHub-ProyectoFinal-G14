@@ -7,6 +7,7 @@ resources:
   - platform/rol_rbac.yaml
   - platform/argo-rollouts-configmap.yaml
   - platform/argo-rollouts-leases-rbac.yaml
+  - platform/argo-rollouts-clusterrole.yaml
   - service-soport
   - service-core
   - service-external

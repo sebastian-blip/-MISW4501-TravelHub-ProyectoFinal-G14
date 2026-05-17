@@ -119,9 +119,8 @@ async def deactivated(
         else:
             query = DeactivatedUserQuery(user_id=user_id)
             result = await mediator.send_async(query)
-            return JSONResponse(status_code=200, content={'details': f'Usuario con id {result.get('user_id')} desactivado'})
+            return JSONResponse(status_code=200, content={'details': f'Usuario con id {result.get("user_id")} desactivado'})
 
     except Exception as e:
-        print(e)
         raise HTTPException(status_code=500, detail=None)
 

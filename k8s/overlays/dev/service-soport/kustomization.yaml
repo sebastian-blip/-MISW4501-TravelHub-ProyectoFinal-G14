@@ -6,6 +6,7 @@ resources:
   - external-secret.yaml
   - serviceaccount.yaml
   - deployment.yaml
+  - hpa.yaml
   - service.yaml
   - ingress.yaml
 

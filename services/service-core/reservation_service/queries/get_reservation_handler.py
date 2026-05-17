@@ -9,6 +9,7 @@ from reservation_service.queries.reservation_queries import (
     ListAllReservationsQuery,
     ReservationResponse,
     ReservationListResponse,
+    GetActivatedReservationsByUserQuery
 )
 from reservation_service.repository.reservation_repository import ReservationRepository
 
@@ -51,6 +52,21 @@ class ListReservationsByUserHandler:
                 offset=query.offset,
             )
 
+@Mediator.handler
+class GetActivatedReservationsByUserHandler:
+    async def handle(self, query: GetActivatedReservationsByUserQuery) -> ReservationListResponse:
+        async with async_session_maker() as session:
+            repository = ReservationRepository(session)
+            reservations = await repository.list_activated_by_user_or_guest(
+                query.user_id
+            )
+            items = [ReservationResponse.from_orm(r) for r in reservations]
+            return ReservationListResponse(
+                items=items,
+                total=len(items),
+                limit=100,
+                offset=0,
+            )
 
 @Mediator.handler
 class ListAllReservationsHandler:

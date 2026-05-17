@@ -71,6 +71,10 @@ class ListReservationsByUserQuery:
 
 
 @dataclass
+class GetActivatedReservationsByUserQuery:
+    user_id: UUID
+
+@dataclass
 class ListAllReservationsQuery:
     limit: int = 10
     offset: int = 0

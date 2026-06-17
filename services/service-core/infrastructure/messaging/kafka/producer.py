@@ -36,7 +36,7 @@ async def start_producer(
         config["sasl_plain_username"] = os.getenv("KAFKA_USERNAME")
         config["sasl_plain_password"] = os.getenv("KAFKA_PASSWORD")
     else:
-        config["sasl_mechanism"] = "PLAIN"
+        config["security_protocol"] = "PLAINTEXT"
 
 
 

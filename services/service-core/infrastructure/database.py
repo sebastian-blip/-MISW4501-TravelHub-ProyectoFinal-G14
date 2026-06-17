@@ -18,6 +18,19 @@ engine = create_async_engine(DATABASE_URL, echo=True)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 async def init_db():
+    """
+    Initialize DB connection.
+
+    NOTE:
+    This project also ships SQL DDL + seed scripts under `schemas/`.
+    If you are using those (recommended for local compose), keep
+    AUTO_CREATE_SCHEMA=false so SQLModel doesn't create tables with a
+    different shape (missing DB defaults, NOT NULL mismatches, etc.).
+    """
+    auto_create = os.getenv("AUTO_CREATE_SCHEMA", "false").lower() == "true"
+    if not auto_create:
+        return
+
     async with engine.begin() as conn:
         # Import models so SQLModel knows them
         import domain.models.user

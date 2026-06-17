@@ -1,0 +1,94 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - .env.local
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-travelhub}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - travelhub_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Kafka local opcional (por defecto apps lo tienen deshabilitado con KAFKA_ENABLED=false).
+  zookeeper:
+    profiles: ["kafka"]
+    # NOTE: bitnami/zookeeper tags may not be publicly available; keep this service behind a profile.
+    image: bitnami/zookeeper:3.9
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports:
+      - "2181:2181"
+
+  kafka:
+    profiles: ["kafka"]
+    image: bitnami/kafka:3.7
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+
+  service-core:
+    build: ./services/service-core
+    env_file:
+      - .env.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      # DB
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-travelhub}
+      # Use SQL DDL under `schemas/` for local compose
+      AUTO_CREATE_SCHEMA: "false"
+
+      # Kafka (deshabilitado por defecto para local)
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      KAFKA_LOCAL: ${KAFKA_LOCAL:-true}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_USERNAME: ${KAFKA_USERNAME:-}
+      KAFKA_PASSWORD: ${KAFKA_PASSWORD:-}
+
+    restart: unless-stopped
+
+  service-external:
+    build: ./services/service-external
+    ports:
+      - "8002:8000"
+    environment:
+      # Kafka (deshabilitado por defecto para local)
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      KAFKA_LOCAL: ${KAFKA_LOCAL:-true}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+
+      # Integrations default to mocks locally (override as needed)
+      PMS_ADAPTER_STRATEGY: ${PMS_ADAPTER_STRATEGY:-mock}
+      PAYMENT_ADAPTER_STRATEGY: ${PAYMENT_ADAPTER_STRATEGY:-mock}
+      CURRENCY_ADAPTER_STRATEGY: ${CURRENCY_ADAPTER_STRATEGY:-mock}
+      CDN_STORAGE_ADAPTER_STRATEGY: ${CDN_STORAGE_ADAPTER_STRATEGY:-mock}
+      MAPS_ADAPTER_STRATEGY: ${MAPS_ADAPTER_STRATEGY:-mock}
+      NOTIFICATION_ADAPTER_STRATEGY: ${NOTIFICATION_ADAPTER_STRATEGY:-mock}
+    restart: unless-stopped
+
+volumes:
+  travelhub_postgres_data:
+
